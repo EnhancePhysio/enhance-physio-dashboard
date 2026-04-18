@@ -422,14 +422,15 @@ def diagnostics_tab(filters: dict) -> None:
         st.error(f"Could not build Cliniko client: {e}")
         return
 
-    # 1) Account ping — proves auth + shard
-    with st.expander("1. Account (verifies auth)", expanded=True):
+    # 1) Cheap auth check — just hit practitioners?per_page=1.
+    # (Cliniko has no /account endpoint; ignore if this 404s.)
+    with st.expander("1. Auth check (practitioners?per_page=1)", expanded=True):
         try:
-            acct = client.ping()
-            st.json(acct)
+            data = client.get("practitioners", params={"per_page": 1})
+            st.json(data)
         except Exception as e:
-            st.error(f"Account call failed: {e}")
-            return
+            st.error(f"Auth check failed: {e}")
+            st.warning("Continuing with remaining sections anyway.")
 
     # 2) Practitioners
     with st.expander("2. First practitioner — raw record"):
