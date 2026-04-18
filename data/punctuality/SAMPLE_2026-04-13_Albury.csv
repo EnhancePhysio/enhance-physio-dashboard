@@ -1,0 +1,11 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2026-04-13,Albury,Alice Smith,Monday,10,2,1,0,
+2026-04-13,Albury,Alice Smith,Tuesday,8,3,0,1,
+2026-04-13,Albury,Alice Smith,Wednesday,0,0,0,0,leave
+2026-04-13,Albury,Alice Smith,Thursday,11,1,2,0,
+2026-04-13,Albury,Alice Smith,Friday,9,2,0,0,
+2026-04-13,Albury,Bob Jones,Monday,7,4,1,2,
+2026-04-13,Albury,Bob Jones,Tuesday,0,0,0,0,off
+2026-04-13,Albury,Bob Jones,Wednesday,6,3,1,1,
+2026-04-13,Albury,Bob Jones,Thursday,8,2,0,0,
+2026-04-13,Albury,Bob Jones,Friday,10,1,0,0,
