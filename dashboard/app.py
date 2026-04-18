@@ -364,7 +364,7 @@ def manual_tab(filters: dict):
             st.dataframe(new_nps, use_container_width=True)
             name = st.text_input("Save as filename (YYYY-MM.csv)", value="nps.csv")
             if st.button("Save NPS CSV", key="nps_save"):
-                from .manual import NPS_DIR
+                from dashboard.manual import NPS_DIR
                 out = NPS_DIR / name
                 new_nps.to_csv(out, index=False)
                 st.success(f"Saved: {out.name}")
@@ -380,11 +380,119 @@ def main() -> None:
     st.title("Enhance Physio — Performance Dashboard")
     filters = sidebar_filters()
 
-    tab_overview, tab_manual = st.tabs(["Overview", "Manual data"])
+    tab_overview, tab_manual, tab_diag = st.tabs(["Overview", "Manual data", "🔧 Diagnostics"])
     with tab_overview:
         overview_tab(filters)
     with tab_manual:
         manual_tab(filters)
+    with tab_diag:
+        diagnostics_tab(filters)
+
+
+def diagnostics_tab(filters: dict) -> None:
+    """Temporary debug tab: shows raw Cliniko responses so we can spot
+    field-name mismatches. Remove once the main dashboard is trusted."""
+    import json
+    from dashboard.cliniko import starts_at_range_params
+
+    st.subheader("🔧 Cliniko API diagnostics")
+    st.caption(
+        "This tab shows raw samples from Cliniko so we can debug why the "
+        "main dashboard might show zeros. Safe to ignore once numbers look right."
+    )
+
+    dr = filters["date_range"]
+    st.write(f"**Date range:** {dr.start_iso_utc} → {dr.end_iso_utc}")
+    st.write(f"**Practitioner filter:** "
+             f"{filters['practitioner_ids'] or '(all)'}")
+    st.write(f"**Clinic filter:** "
+             f"{filters['business_ids'] or '(all)'}")
+
+    try:
+        client = ClinikoClient()
+    except Exception as e:
+        st.error(f"Could not build Cliniko client: {e}")
+        return
+
+    # 1) Account ping — proves auth + shard
+    with st.expander("1. Account (verifies auth)", expanded=True):
+        try:
+            acct = client.ping()
+            st.json(acct)
+        except Exception as e:
+            st.error(f"Account call failed: {e}")
+            return
+
+    # 2) Practitioners
+    with st.expander("2. First practitioner — raw record"):
+        try:
+            prs = list(client.paginate("practitioners"))
+            st.write(f"Total practitioners returned: **{len(prs)}**")
+            if prs:
+                st.json(prs[0])
+        except Exception as e:
+            st.error(f"Practitioners call failed: {e}")
+
+    # 3) Businesses
+    with st.expander("3. Businesses (clinics)"):
+        try:
+            bs = list(client.paginate("businesses"))
+            st.write(f"Total businesses: **{len(bs)}**")
+            if bs:
+                st.json(bs[0])
+        except Exception as e:
+            st.error(f"Businesses call failed: {e}")
+
+    # 4) Appointment types
+    with st.expander("4. First appointment type — raw record"):
+        try:
+            ats = list(client.paginate("appointment_types"))
+            st.write(f"Total appointment types: **{len(ats)}**")
+            if ats:
+                st.json(ats[0])
+        except Exception as e:
+            st.error(f"Appointment types call failed: {e}")
+
+    # 5) Individual appointments in range — the big one
+    with st.expander("5. First 3 individual_appointments in range", expanded=True):
+        params = starts_at_range_params(dr.start_iso_utc, dr.end_iso_utc)
+        try:
+            apps_iter = client.paginate("individual_appointments", params=params)
+            sample = []
+            for i, a in enumerate(apps_iter):
+                sample.append(a)
+                if i >= 2:
+                    break
+            st.write(f"Sample size: **{len(sample)}**")
+            if not sample:
+                st.warning(
+                    "Cliniko returned ZERO appointments for this date range. "
+                    "This is almost certainly why everything shows 0. "
+                    "Try a bigger date range (Last 90 days, or YTD)."
+                )
+            for a in sample:
+                st.json(a)
+        except Exception as e:
+            st.error(f"Appointments call failed: {e}")
+
+    # 6) Patients in range
+    with st.expander("6. First 2 patients created in range"):
+        params = {"q[]": [
+            f"created_at:>={dr.start_iso_utc}",
+            f"created_at:<{dr.end_iso_utc}",
+        ]}
+        try:
+            it = client.paginate("patients", params=params)
+            sample = []
+            for i, p in enumerate(it):
+                sample.append(p)
+                if i >= 1:
+                    break
+            st.write(f"Sample size: **{len(sample)}**")
+            for p in sample:
+                st.json(p)
+        except Exception as e:
+            st.error(f"Patients call failed: {e}")
 
 
 if __name__ == "__main__":
