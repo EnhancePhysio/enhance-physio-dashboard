@@ -456,6 +456,13 @@ def merge_per_practitioner(result: MetricResult,
     ]:
         if df is not None and not df.empty:
             base = base.merge(df[cols], on="practitioner_id", how="left")
+        else:
+            # Source DataFrame is empty (no data in this date range, or API
+            # returned nothing). Still create the expected columns so
+            # downstream code can reference them safely.
+            for c in cols:
+                if c != "practitioner_id" and c not in base.columns:
+                    base[c] = pd.NA
     if manual_nps is not None and not manual_nps.empty:
         base = base.merge(manual_nps, on="practitioner_id", how="left")
     if manual_punct is not None and not manual_punct.empty:
