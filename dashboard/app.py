@@ -401,7 +401,15 @@ def diagnostics_tab(filters: dict) -> None:
         "main dashboard might show zeros. Safe to ignore once numbers look right."
     )
 
-    dr = filters["date_range"]
+    try:
+        dr = resolve_preset(
+            filters["preset"],
+            filters.get("custom_start"),
+            filters.get("custom_end"),
+        )
+    except Exception as e:
+        st.error(f"Could not resolve date range: {e}")
+        return
     st.write(f"**Date range:** {dr.start_iso_utc} → {dr.end_iso_utc}")
     st.write(f"**Practitioner filter:** "
              f"{filters['practitioner_ids'] or '(all)'}")
