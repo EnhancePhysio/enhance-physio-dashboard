@@ -8,6 +8,10 @@ financial_year_start_month: 7   # AU FY: Jul 1
 # Utilisation — keywords used to classify unavailable_blocks.
 # Case-insensitive substring match.
 utilisation:
+  # Denominator = days_worked × standard_hours_per_day.
+  # If your full-time roster is an 8-hour clinic day, leave at 8.
+  # 7.6 is common for clinics that exclude a paid break.
+  standard_hours_per_day: 8.0
   qualifying_keywords:
     - billable report
     - case conference

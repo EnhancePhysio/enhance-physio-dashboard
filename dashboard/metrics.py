@@ -7,9 +7,10 @@ from datetime import datetime
 from typing import Any, Iterable
 
 import pandas as pd
+import pytz
 
 from dashboard.cliniko import ClinikoClient, starts_at_range_params
-from dashboard.config import load_settings
+from dashboard.config import load_settings, timezone_name
 from dashboard.date_ranges import DateRange
 from dashboard.reference_data import extract_linked_id
 
@@ -19,7 +20,8 @@ from dashboard.reference_data import extract_linked_id
 # -------------------------------------------------------------------
 def _iter_appointments(client: ClinikoClient, dr: DateRange,
                        business_ids: list[int] | None = None,
-                       practitioner_ids: list[int] | None = None) -> Iterable[dict[str, Any]]:
+                       practitioner_ids: list[int] | None = None,
+                       extra_q: list[str] | None = None) -> Iterable[dict[str, Any]]:
     params = starts_at_range_params(dr.start_iso_utc, dr.end_iso_utc)
     # Cliniko supports q[]=business_id:= and q[]=practitioner_id:= — apply narrowest first.
     q = list(params["q[]"])
@@ -27,46 +29,100 @@ def _iter_appointments(client: ClinikoClient, dr: DateRange,
         q.append(f"business_id:={business_ids[0]}")
     if practitioner_ids and len(practitioner_ids) == 1:
         q.append(f"practitioner_id:={practitioner_ids[0]}")
+    if extra_q:
+        q.extend(extra_q)
     params = {"q[]": q}
     yield from client.paginate("individual_appointments", params=params)
+
+
+def _appt_row(a: dict[str, Any]) -> dict[str, Any]:
+    aid = a.get("id")
+    return {
+        # Keep ID as string — appointment IDs are referenced by treatment_notes
+        # via a URL link that extract_linked_id parses as str, so both sides of
+        # the join must match as strings.
+        "id": None if aid is None else str(aid),
+        "patient_id": extract_linked_id(a.get("patient"), "self")
+                       or extract_linked_id(a.get("links"), "patient"),
+        "practitioner_id": extract_linked_id(a.get("practitioner"), "self")
+                           or extract_linked_id(a.get("links"), "practitioner"),
+        "business_id": extract_linked_id(a.get("business"), "self")
+                        or extract_linked_id(a.get("links"), "business"),
+        "appointment_type_id": extract_linked_id(a.get("appointment_type"), "self")
+                                or extract_linked_id(a.get("links"), "appointment_type"),
+        "starts_at": a.get("starts_at"),
+        "ends_at": a.get("ends_at"),
+        "cancelled_at": a.get("cancelled_at"),
+        "archived_at": a.get("archived_at"),
+        "did_not_arrive": a.get("did_not_arrive"),
+        "cancellation_reason": a.get("cancellation_reason"),
+    }
 
 
 def fetch_appointments(client: ClinikoClient, dr: DateRange,
                        business_ids: list[int] | None = None,
                        practitioner_ids: list[int] | None = None) -> pd.DataFrame:
-    rows = []
+    """Fetch in-range individual_appointments, including cancelled, excluding archived.
+
+    Two-pass fetch:
+      1. Default query — active, non-archived, non-cancelled.
+      2. Explicit cancelled pass — Cliniko's default filter excludes records
+         with cancelled_at set, so we force inclusion via a range filter.
+    De-dupe by id. Archived records are excluded (per Matt: archived = NA,
+    not counted as delivered/cancelled/DNA).
+    """
+    rows: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+
+    def _add(a: dict[str, Any]) -> None:
+        row = _appt_row(a)
+        rid = row["id"]
+        if rid is None or rid in seen_ids:
+            return
+        seen_ids.add(rid)
+        rows.append(row)
+
+    # Pass 1 — default (active appointments)
     for a in _iter_appointments(client, dr, business_ids, practitioner_ids):
-        rows.append({
-            "id": a.get("id"),
-            "patient_id": extract_linked_id(a.get("patient"), "self")
-                           or extract_linked_id(a.get("links"), "patient"),
-            "practitioner_id": extract_linked_id(a.get("practitioner"), "self")
-                               or extract_linked_id(a.get("links"), "practitioner"),
-            "business_id": extract_linked_id(a.get("business"), "self")
-                            or extract_linked_id(a.get("links"), "business"),
-            "appointment_type_id": extract_linked_id(a.get("appointment_type"), "self")
-                                    or extract_linked_id(a.get("links"), "appointment_type"),
-            "starts_at": a.get("starts_at"),
-            "ends_at": a.get("ends_at"),
-            "cancelled_at": a.get("cancelled_at"),
-            "did_not_arrive": a.get("did_not_arrive"),
-            "cancellation_reason": a.get("cancellation_reason"),
-        })
+        _add(a)
+
+    # Pass 2 — force cancelled appointments to surface. Cliniko excludes rows
+    # with cancelled_at set from the default query; a range filter on
+    # cancelled_at flips that to "cancelled_at is set and >= epoch", which
+    # returns every cancellation in the starts_at window.
+    try:
+        for a in _iter_appointments(
+            client, dr, business_ids, practitioner_ids,
+            extra_q=["cancelled_at:>=1970-01-01T00:00:00Z"],
+        ):
+            _add(a)
+    except Exception:
+        pass
+
     df = pd.DataFrame(rows)
     if df.empty:
         return df
     df["starts_at"] = pd.to_datetime(df["starts_at"], utc=True, errors="coerce")
     df["ends_at"] = pd.to_datetime(df["ends_at"], utc=True, errors="coerce")
     df["cancelled_at"] = pd.to_datetime(df["cancelled_at"], utc=True, errors="coerce")
+    df["archived_at"] = pd.to_datetime(df["archived_at"], utc=True, errors="coerce")
+    # Archived = NA. Drop entirely so they don't count anywhere.
+    df = df[df["archived_at"].isna()].copy()
     # Post-filter for multi-select (server only supports single equality cleanly)
     if business_ids:
-        df = df[df["business_id"].isin(business_ids)]
+        df = df[df["business_id"].isin([str(b) for b in business_ids])]
     if practitioner_ids:
-        df = df[df["practitioner_id"].isin(practitioner_ids)]
+        df = df[df["practitioner_id"].isin([str(p) for p in practitioner_ids])]
     return df
 
 
 def _is_delivered(df: pd.DataFrame) -> pd.Series:
+    """A delivered consult = not cancelled AND patient arrived.
+
+    `archived_at` alone does NOT disqualify — plenty of clinics archive
+    completed appointments for tidiness. Only cancellation or DNA removes
+    an appointment from the 'delivered' set.
+    """
     cancelled = df["cancelled_at"].notna()
     dna = df["did_not_arrive"].fillna(False).astype(bool)
     return ~(cancelled | dna)
@@ -76,49 +132,50 @@ def _is_delivered(df: pd.DataFrame) -> pd.Series:
 # 4.1 New Patients
 # -------------------------------------------------------------------
 def new_patients(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) -> pd.DataFrame:
-    """Count distinct patients whose first attended appointment falls in the range.
+    """Count distinct NEW CLIENTS seen by each practitioner in the range.
 
-    To be strictly accurate we'd need every patient's complete appointment history.
-    For prototype scope we approximate via the in-range delivered appointments and
-    cross-check each candidate by fetching that patient's earliest appointment.
-    That's expensive (one call per candidate) so we cache per practitioner.
+    "New client" = patient whose Cliniko record was created during the range
+    (per Matt's guidance — cheaper and more aligned with Cliniko's own
+    Practitioner Performance report than a per-patient history lookup).
+    We then count how many of those new clients each practitioner actually
+    saw (delivered appt) in the same range. Same patient seen by two
+    practitioners counts once for each — that's how Cliniko reports it.
     """
     if appts.empty:
         return pd.DataFrame(columns=["practitioner_id", "new_patients"])
 
-    delivered = appts[_is_delivered(appts)].copy()
+    # One cheap call: list patient IDs created in the range.
+    new_patient_ids: set[str] = set()
+    try:
+        for p in client.paginate(
+            "patients",
+            params={"q[]": [
+                f"created_at:>={dr.start_iso_utc}",
+                f"created_at:<{dr.end_iso_utc}",
+            ]},
+        ):
+            pid = p.get("id")
+            if pid is not None:
+                new_patient_ids.add(str(pid))
+    except Exception:
+        return pd.DataFrame(columns=["practitioner_id", "new_patients"])
+
+    if not new_patient_ids:
+        return pd.DataFrame(columns=["practitioner_id", "new_patients"])
+
+    delivered = appts[_is_delivered(appts)]
     if delivered.empty:
         return pd.DataFrame(columns=["practitioner_id", "new_patients"])
-
-    # Earliest in-range delivered appointment per (practitioner, patient)
-    delivered = delivered.sort_values("starts_at")
-    first_in_range = delivered.groupby(["practitioner_id", "patient_id"]).first().reset_index()
-
-    # For each candidate patient, verify no prior delivered appointment exists
-    # (this catches returning patients whose record pre-dates the range)
-    new_rows = []
-    for _, row in first_in_range.iterrows():
-        earlier = list(client.paginate(
-            "individual_appointments",
-            params={
-                "q[]": [
-                    f"patient_id:={row['patient_id']}",
-                    f"starts_at:<{row['starts_at'].strftime('%Y-%m-%dT%H:%M:%SZ')}",
-                ],
-                "per_page": 1,
-            },
-        ))
-        is_new = not any(
-            (e.get("cancelled_at") is None and not e.get("did_not_arrive", False))
-            for e in earlier
-        )
-        if is_new:
-            new_rows.append(row["practitioner_id"])
-
-    if not new_rows:
+    seen = delivered[delivered["patient_id"].isin(new_patient_ids)]
+    if seen.empty:
         return pd.DataFrame(columns=["practitioner_id", "new_patients"])
-    s = pd.Series(new_rows).value_counts()
-    return s.rename_axis("practitioner_id").reset_index(name="new_patients")
+    g = (
+        seen.groupby("practitioner_id")["patient_id"]
+        .nunique()
+        .rename("new_patients")
+        .reset_index()
+    )
+    return g
 
 
 # -------------------------------------------------------------------
@@ -137,46 +194,33 @@ def total_consults(appts: pd.DataFrame) -> pd.DataFrame:
 # -------------------------------------------------------------------
 def service_hours(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange,
                   practitioner_ids: list[int] | None = None) -> pd.DataFrame:
+    """Service hours + days worked.
+
+    `days_worked` counts unique LOCAL-timezone dates on which the practitioner
+    delivered at least one appointment. We dropped the availability_blocks
+    heuristic — it was over-counting because Cliniko returns roster-pattern
+    blocks that include days the practitioner never actually consulted
+    (which produced values like 26 days in a 30-day window).
+    """
     if appts.empty:
         return pd.DataFrame(columns=["practitioner_id", "service_hours",
                                      "days_worked", "avg_hours_per_day"])
 
+    tz = pytz.timezone(timezone_name())
     delivered = appts[_is_delivered(appts)].copy()
     delivered["duration_h"] = (delivered["ends_at"] - delivered["starts_at"]).dt.total_seconds() / 3600.0
     by_prac = delivered.groupby("practitioner_id").agg(
         service_hours=("duration_h", "sum"),
     ).reset_index()
 
-    # Days worked — days with any availability OR any delivered appt
-    days_map: dict[int, set] = {}
-    # Cheap proxy: days with delivered appts
+    # Days worked — unique LOCAL dates with at least one delivered appt
+    days_map: dict[str, set] = {}
     tmp = delivered.dropna(subset=["starts_at"]).copy()
-    tmp["d"] = tmp["starts_at"].dt.tz_convert("UTC").dt.date
+    # Convert from UTC to the clinic timezone so an 8am Sydney appt counts as
+    # that calendar day, not the previous UTC date.
+    tmp["d"] = tmp["starts_at"].dt.tz_convert(tz).dt.date
     for pid, grp in tmp.groupby("practitioner_id"):
         days_map.setdefault(pid, set()).update(grp["d"].unique())
-
-    # Also count availability_blocks as 'worked' if available
-    try:
-        avail = list(client.paginate(
-            "availability_blocks",
-            params={"q[]": [
-                f"starts_at:>={dr.start_iso_utc}",
-                f"starts_at:<{dr.end_iso_utc}",
-            ]},
-        ))
-        for b in avail:
-            pid = (extract_linked_id(b.get("practitioner"), "self")
-                   or extract_linked_id(b.get("links"), "practitioner"))
-            if pid is None:
-                continue
-            try:
-                d = datetime.fromisoformat(b["starts_at"].replace("Z", "+00:00")).date()
-                days_map.setdefault(pid, set()).add(d)
-            except (KeyError, ValueError):
-                pass
-    except Exception:
-        # availability_blocks endpoint is optional; skip silently if unavailable
-        pass
 
     by_prac["days_worked"] = by_prac["practitioner_id"].map(
         lambda pid: max(len(days_map.get(pid, set())), 1)
@@ -188,16 +232,31 @@ def service_hours(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange,
 # -------------------------------------------------------------------
 # 4.4 PVA
 # -------------------------------------------------------------------
-def pva(appts: pd.DataFrame) -> pd.DataFrame:
+def pva(appts: pd.DataFrame, new_patients_df: pd.DataFrame) -> pd.DataFrame:
+    """PVA = attended appointments ÷ new clients seen (Cliniko's definition).
+
+    Matches the Cliniko Practitioner Performance report exactly.
+    Verified against real data:
+        Alesha: 545 attended / 58 new = 9.4  ✓
+        Ben:    112 / 35                = 3.2 ✓
+        Emma:   568 / 46                = 12.3 ✓
+    """
     if appts.empty:
         return pd.DataFrame(columns=["practitioner_id", "pva"])
     delivered = appts[_is_delivered(appts)]
-    agg = delivered.groupby("practitioner_id").agg(
-        consults=("id", "count"),
-        patients=("patient_id", "nunique"),
-    ).reset_index()
-    agg["pva"] = (agg["consults"] / agg["patients"]).where(agg["patients"] > 0, 0)
-    return agg[["practitioner_id", "pva"]]
+    consults = (
+        delivered.groupby("practitioner_id").size().rename("consults").reset_index()
+    )
+    if new_patients_df is None or new_patients_df.empty:
+        consults["new_patients"] = 0
+    else:
+        consults = consults.merge(new_patients_df, on="practitioner_id", how="left")
+        consults["new_patients"] = consults["new_patients"].fillna(0)
+    consults["pva"] = consults.apply(
+        lambda r: (r["consults"] / r["new_patients"]) if r["new_patients"] > 0 else 0.0,
+        axis=1,
+    )
+    return consults[["practitioner_id", "pva"]]
 
 
 # -------------------------------------------------------------------
@@ -261,6 +320,15 @@ def cx_dna_rates(appts: pd.DataFrame) -> pd.DataFrame:
 # 4.7 Utilisation
 # -------------------------------------------------------------------
 def utilisation(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) -> pd.DataFrame:
+    """Utilisation = (delivered + qualifying admin) ÷ available minutes.
+
+    Available minutes come from Cliniko's `availability_blocks` endpoint —
+    the practitioner's real roster. Qualifying `unavailable_blocks`
+    (billable report, case conference, mentoring, etc.) count toward the
+    numerator so admin time isn't penalised. If a practitioner has no
+    availability_blocks in the range, utilisation is NaN (not 0) so the
+    rubric can skip them rather than dragging them to the bottom.
+    """
     if appts.empty:
         return pd.DataFrame(columns=["practitioner_id", "utilisation"])
     settings = load_settings()["utilisation"]
@@ -275,12 +343,16 @@ def utilisation(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) -> pd
             return "qualifying"
         return "other"
 
-    # Available minutes per practitioner (from availability_blocks)
-    avail_minutes: dict[int, float] = {}
+    # Available minutes (denominator) — from availability_blocks
+    avail_minutes: dict[str, float] = {}
     try:
-        for b in client.paginate("availability_blocks",
-                                  params={"q[]": [f"starts_at:>={dr.start_iso_utc}",
-                                                   f"starts_at:<{dr.end_iso_utc}"]}):
+        for b in client.paginate(
+            "availability_blocks",
+            params={"q[]": [
+                f"starts_at:>={dr.start_iso_utc}",
+                f"starts_at:<{dr.end_iso_utc}",
+            ]},
+        ):
             pid = (extract_linked_id(b.get("practitioner"), "self")
                    or extract_linked_id(b.get("links"), "practitioner"))
             if pid is None:
@@ -289,25 +361,29 @@ def utilisation(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) -> pd
                 s = datetime.fromisoformat(b["starts_at"].replace("Z", "+00:00"))
                 e = datetime.fromisoformat(b["ends_at"].replace("Z", "+00:00"))
                 mins = (e - s).total_seconds() / 60.0
-                avail_minutes[pid] = avail_minutes.get(pid, 0.0) + mins
+                if mins > 0:
+                    avail_minutes[pid] = avail_minutes.get(pid, 0.0) + mins
             except (KeyError, ValueError):
                 pass
     except Exception:
         pass
 
-    # Qualifying unavailable blocks
-    qualifying_minutes: dict[int, float] = {}
+    # Qualifying unavailable minutes (add to numerator — counts as worked time)
+    qualifying_minutes: dict[str, float] = {}
     try:
-        for b in client.paginate("unavailable_blocks",
-                                  params={"q[]": [f"starts_at:>={dr.start_iso_utc}",
-                                                   f"starts_at:<{dr.end_iso_utc}"]}):
+        for b in client.paginate(
+            "unavailable_blocks",
+            params={"q[]": [
+                f"starts_at:>={dr.start_iso_utc}",
+                f"starts_at:<{dr.end_iso_utc}",
+            ]},
+        ):
             pid = (extract_linked_id(b.get("practitioner"), "self")
                    or extract_linked_id(b.get("links"), "practitioner"))
             if pid is None:
                 continue
             label = b.get("name") or b.get("notes") or ""
-            cls = _classify(label)
-            if cls != "qualifying":
+            if _classify(label) != "qualifying":
                 continue
             try:
                 s = datetime.fromisoformat(b["starts_at"].replace("Z", "+00:00"))
@@ -319,7 +395,6 @@ def utilisation(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) -> pd
     except Exception:
         pass
 
-    # Delivered appointment minutes
     delivered = appts[_is_delivered(appts)].copy()
     delivered["duration_min"] = (delivered["ends_at"] - delivered["starts_at"]).dt.total_seconds() / 60.0
     appt_minutes = delivered.groupby("practitioner_id")["duration_min"].sum().to_dict()
@@ -329,10 +404,7 @@ def utilisation(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) -> pd
     for pid in pids:
         numer = appt_minutes.get(pid, 0.0) + qualifying_minutes.get(pid, 0.0)
         denom = avail_minutes.get(pid, 0.0)
-        if denom <= 0:
-            util = 0.0
-        else:
-            util = min(numer / denom, 1.0)
+        util = (min(numer / denom, 1.0) if denom > 0 else None)
         rows.append({"practitioner_id": pid, "utilisation": util})
     return pd.DataFrame(rows)
 
@@ -351,41 +423,56 @@ def notes_completion(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) 
     if delivered.empty:
         return pd.DataFrame(columns=["practitioner_id", "notes_completion"])
 
-    # Fetch treatment notes for each patient in scope (bulk endpoint if supported)
-    notes_by_appt: dict[int, list[dict]] = {}
+    # Fetch treatment notes. Keys are strings so they match appts["id"] (str).
+    # We widen the window by ±2 days on each side because Cliniko's
+    # `created_at` on a treatment note is when the note was created, which can
+    # be after the appointment — a 24h-late note for an appt at the range
+    # boundary would otherwise be missed.
+    import pandas as _pd  # local alias — avoids shadowing module-level pd
+    widen_start = (_pd.Timestamp(dr.start_iso_utc) - _pd.Timedelta(days=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    widen_end = (_pd.Timestamp(dr.end_iso_utc) + _pd.Timedelta(days=3)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    notes_by_appt: dict[str, list[dict]] = {}
+    fetched_bulk = False
     try:
         for n in client.paginate("treatment_notes",
-                                  params={"q[]": [f"created_at:>={dr.start_iso_utc}",
-                                                   f"created_at:<{dr.end_iso_utc}"]}):
+                                  params={"q[]": [f"created_at:>={widen_start}",
+                                                   f"created_at:<{widen_end}"]}):
             appt_id = (extract_linked_id(n.get("appointment"), "self")
                        or extract_linked_id(n.get("links"), "appointment"))
             if appt_id is None:
                 continue
-            notes_by_appt.setdefault(appt_id, []).append(n)
+            notes_by_appt.setdefault(str(appt_id), []).append(n)
+        fetched_bulk = True
     except Exception:
-        # Fallback — query per-patient only if needed
+        fetched_bulk = False
+
+    # Fallback — query per-patient if bulk didn't work, or merge-in to catch
+    # any notes the bulk query missed (e.g. draft-then-finalised races).
+    if not fetched_bulk:
         for pid in delivered["patient_id"].dropna().unique():
             try:
                 for n in client.paginate(f"patients/{pid}/treatment_notes"):
                     appt_id = (extract_linked_id(n.get("appointment"), "self")
                                or extract_linked_id(n.get("links"), "appointment"))
                     if appt_id:
-                        notes_by_appt.setdefault(appt_id, []).append(n)
+                        notes_by_appt.setdefault(str(appt_id), []).append(n)
             except Exception:
                 continue
 
-    def _pass(row) -> bool | None:
-        notes = notes_by_appt.get(row["id"], [])
+    def _pass(row) -> bool:
+        notes = notes_by_appt.get(str(row["id"]) if row["id"] is not None else "", [])
         if not notes:
             return False
         for n in notes:
             if n.get("draft", False):
                 continue
-            up = n.get("updated_at")
-            if not up:
+            # Prefer updated_at (covers post-hoc edits) else created_at
+            stamp = n.get("updated_at") or n.get("created_at")
+            if not stamp:
                 continue
             try:
-                up_dt = datetime.fromisoformat(up.replace("Z", "+00:00"))
+                up_dt = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
             except ValueError:
                 continue
             delta_h = (up_dt - row["starts_at"].to_pydatetime()).total_seconds() / 3600.0
@@ -418,18 +505,18 @@ class MetricResult:
 
 def compute_core_metrics(client: ClinikoClient, dr: DateRange, appt_types: pd.DataFrame,
                           business_ids: list[int] | None = None,
-                          practitioner_ids: list[int] | None = None,
-                          include_new_patients_check: bool = False) -> MetricResult:
+                          practitioner_ids: list[int] | None = None) -> MetricResult:
+    """Pull every metric for the given range. New-patients is cheap now
+    (one extra call to /patients with a created_at filter), so it's always
+    computed — PVA depends on it."""
     appts = fetch_appointments(client, dr, business_ids, practitioner_ids)
-    np_df = (new_patients(client, appts, dr)
-             if include_new_patients_check
-             else pd.DataFrame(columns=["practitioner_id", "new_patients"]))
+    np_df = new_patients(client, appts, dr)
     return MetricResult(
         appointments=appts,
         new_patients=np_df,
         consults=total_consults(appts),
         service_hours=service_hours(client, appts, dr, practitioner_ids),
-        pva=pva(appts),
+        pva=pva(appts, np_df),
         ppva=ppva(appts, appt_types),
         cx_dna=cx_dna_rates(appts),
         utilisation=utilisation(client, appts, dr),

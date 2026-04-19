@@ -494,6 +494,81 @@ def diagnostics_tab(filters: dict) -> None:
         except Exception as e:
             st.error(f"Patients call failed: {e}")
 
+    with st.expander("7. Cancelled appointments in range (2nd-pass fetch)"):
+        cx_params = {"q[]": [
+            f"starts_at:>={dr.start_iso_utc}",
+            f"starts_at:<{dr.end_iso_utc}",
+            "cancelled_at:>=1970-01-01T00:00:00Z",
+        ]}
+        try:
+            it = client.paginate("individual_appointments", params=cx_params)
+            total = 0
+            sample = []
+            for i, a in enumerate(it):
+                total += 1
+                if i < 2:
+                    sample.append(a)
+            st.write(f"Cancelled appointments found: **{total}**")
+            if total == 0:
+                st.warning(
+                    "Zero cancelled appts returned. If Cliniko's own report "
+                    "shows cancellations for this range, the q-filter syntax "
+                    "may need adjustment."
+                )
+            for a in sample:
+                st.json(a)
+        except Exception as e:
+            st.error(f"Cancelled-appointments call failed: {e}")
+
+    with st.expander("8. availability_blocks in range (utilisation denominator)"):
+        params = {"q[]": [
+            f"starts_at:>={dr.start_iso_utc}",
+            f"starts_at:<{dr.end_iso_utc}",
+        ]}
+        try:
+            total = 0
+            sample = []
+            practitioners_seen: set = set()
+            for i, b in enumerate(client.paginate("availability_blocks", params=params)):
+                total += 1
+                from dashboard.reference_data import extract_linked_id as _xid
+                pid = _xid(b.get("practitioner"), "self") or _xid(b.get("links"), "practitioner")
+                if pid:
+                    practitioners_seen.add(pid)
+                if i < 2:
+                    sample.append(b)
+            st.write(f"Total availability_blocks: **{total}** (across "
+                     f"**{len(practitioners_seen)}** practitioners)")
+            if total == 0:
+                st.warning(
+                    "Zero availability_blocks found. Utilisation will be NaN "
+                    "for every practitioner. Either this endpoint isn't "
+                    "populated in your Cliniko account, or the date range "
+                    "is outside your roster data."
+                )
+            for b in sample:
+                st.json(b)
+        except Exception as e:
+            st.error(f"availability_blocks call failed: {e}")
+
+    with st.expander("9. unavailable_blocks in range (qualifying admin time)"):
+        params = {"q[]": [
+            f"starts_at:>={dr.start_iso_utc}",
+            f"starts_at:<{dr.end_iso_utc}",
+        ]}
+        try:
+            total = 0
+            sample = []
+            for i, b in enumerate(client.paginate("unavailable_blocks", params=params)):
+                total += 1
+                if i < 2:
+                    sample.append(b)
+            st.write(f"Total unavailable_blocks: **{total}**")
+            for b in sample:
+                st.json(b)
+        except Exception as e:
+            st.error(f"unavailable_blocks call failed: {e}")
+
 
 if __name__ == "__main__":
     main()
