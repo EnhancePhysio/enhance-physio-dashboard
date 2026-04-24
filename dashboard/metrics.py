@@ -520,6 +520,23 @@ def utilisation(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) -> pd
 # -------------------------------------------------------------------
 # 4.10 Notes Completion — FINALISED WITHIN 24H (medicolegal requirement)
 # -------------------------------------------------------------------
+_APPT_LINK_KEYS = (
+    # Every plausible key Cliniko might use to expose the appointment
+    # reference on a treatment_note. Ordered by observed likelihood across
+    # Cliniko API versions. Shape 2 and 3 iterate over this list.
+    "appointment", "individual_appointment",
+    "booking", "event", "session", "consultation",
+    "attendee",  # on some older schemas this IS the appointment, not the patient
+)
+
+
+def _tail_from_url(url: Any) -> str | None:
+    if not isinstance(url, str) or not url:
+        return None
+    tail = url.rstrip("/").rsplit("/", 1)[-1]
+    return tail or None
+
+
 def _extract_appt_id_from_note(n: dict[str, Any]) -> str | None:
     """Pull an appointment_id out of a treatment_note record.
 
@@ -529,46 +546,85 @@ def _extract_appt_id_from_note(n: dict[str, Any]) -> str | None:
     NOTE ids and trying to join them against appointment ids. Zero matches,
     zero notes_completion. Users saw 0% across the board on 2026-04-24.
 
-    This replacement explicitly tries every plausible shape and NEVER
-    falls back to self — returns None if we genuinely can't find an
-    appointment link, which the caller surfaces as a diagnostic counter.
-
-    Shapes tried:
-    1. ``n["appointment_id"]`` / ``n["individual_appointment_id"]`` — plain
-       numeric field (some Cliniko accounts expose this directly).
-    2. ``n["appointment"]["links"]["self"]`` / ``n["individual_appointment"]
-       ["links"]["self"]`` — embedded reference object with its own self URL
-       pointing at the appointment.
-    3. ``n["links"]["appointment"]`` / ``n["links"]["individual_appointment"]``
-       — a plain URL string under the note's links map.
+    v24 — expanded to try more shapes after v23 came back with 0 matches
+    on Enhance Physio's shard (4043 scanned, 0 kept). Ordering matters:
+    direct id fields first, then embedded reference objects, then URL
+    strings under links. Never falls back to self.
     """
-    # Shape 1 — direct numeric field
-    for k in ("appointment_id", "individual_appointment_id"):
+    # Shape 1 — direct numeric/string id field (several possible names)
+    for k in ("appointment_id", "individual_appointment_id",
+              "booking_id", "event_id", "session_id"):
         v = n.get(k)
         if v:
             return str(v)
 
-    # Shape 2 — embedded reference object
-    for k in ("appointment", "individual_appointment"):
+    # Shape 2 — embedded reference object. Covers both
+    #   {"appointment": {"id": "123"}}
+    # and
+    #   {"appointment": {"links": {"self": "https://.../appointments/123"}}}
+    for k in _APPT_LINK_KEYS:
         v = n.get(k)
         if isinstance(v, dict):
+            # Direct nested id
+            nid = v.get("id")
+            if nid:
+                return str(nid)
+            # Links.self URL
             links = v.get("links") if isinstance(v.get("links"), dict) else v
-            url = links.get("self") if isinstance(links, dict) else None
-            if isinstance(url, str) and url:
-                tail = url.rstrip("/").rsplit("/", 1)[-1]
-                if tail:
-                    return tail
+            tail = _tail_from_url(links.get("self") if isinstance(links, dict) else None)
+            if tail:
+                return tail
+        elif isinstance(v, (str, int)) and v not in ("", 0):
+            # Some APIs return the reference as a bare id string/number
+            return str(v)
 
-    # Shape 3 — URL string under note's links map
+    # Shape 3 — URL or id under note's own links map
     links = n.get("links") if isinstance(n.get("links"), dict) else {}
-    for k in ("appointment", "individual_appointment"):
-        url = links.get(k) if isinstance(links, dict) else None
-        if isinstance(url, str) and url:
-            tail = url.rstrip("/").rsplit("/", 1)[-1]
+    for k in _APPT_LINK_KEYS:
+        if not isinstance(links, dict):
+            break
+        raw = links.get(k)
+        if isinstance(raw, dict):
+            # Nested link object under links, e.g. links.appointment.self
+            inner_url = raw.get("self") if isinstance(raw, dict) else None
+            tail = _tail_from_url(inner_url)
+            if tail:
+                return tail
+            nid = raw.get("id")
+            if nid:
+                return str(nid)
+        else:
+            tail = _tail_from_url(raw)
             if tail:
                 return tail
 
     return None
+
+
+def _safe_note_structure(n: dict[str, Any]) -> dict[str, Any]:
+    """Extract ONLY the structural keys of a treatment_note for diagnostics.
+
+    Must never leak clinical content — we return key names and link URLs
+    (which are just record pointers, no PHI) but drop anything that could
+    be a note body, subjective text, patient detail, etc. Used by the
+    v24 diagnostic to show Matt what shape Cliniko is actually returning.
+    """
+    safe: dict[str, Any] = {"top_level_keys": sorted(n.keys())}
+    links = n.get("links")
+    if isinstance(links, dict):
+        safe["links_keys"] = sorted(links.keys())
+        # Show only the key names of each link value's structure
+        safe["links_value_types"] = {
+            k: (type(v).__name__ + (f" (keys={sorted(v.keys())})"
+                                      if isinstance(v, dict) else ""))
+            for k, v in links.items()
+        }
+    # If there's an embedded `appointment` or similar, show its keys only
+    for k in _APPT_LINK_KEYS:
+        v = n.get(k)
+        if isinstance(v, dict):
+            safe[f"{k}_keys"] = sorted(v.keys())
+    return safe
 
 
 def _fetch_treatment_notes_for_range(
@@ -603,11 +659,17 @@ def _fetch_treatment_notes_for_range(
     rows: list[dict[str, Any]] = []
     scanned = 0  # total notes seen, before the appt-id drop
     dropped_no_appt = 0
+    first_note_shape: dict[str, Any] | None = None
     try:
         for n in client.paginate("treatment_notes", params=params):
             scanned += 1
+            # v24 — capture structural shape of the first unmatched note so
+            # Matt can see exactly what Cliniko is returning. PHI-safe:
+            # _safe_note_structure only returns key names, never content.
             appt_id = _extract_appt_id_from_note(n)
             if appt_id is None:
+                if first_note_shape is None and isinstance(n, dict):
+                    first_note_shape = _safe_note_structure(n)
                 dropped_no_appt += 1
                 continue
             rows.append({
@@ -624,12 +686,16 @@ def _fetch_treatment_notes_for_range(
         ])
         out.attrs["notes_scanned"] = scanned
         out.attrs["notes_dropped_no_appt_link"] = dropped_no_appt
+        if first_note_shape is not None:
+            out.attrs["first_unmatched_note_shape"] = first_note_shape
         return out
 
     df = pd.DataFrame(rows, columns=["appointment_id", "note_created_at", "note_archived_at"])
     if df.empty:
         df.attrs["notes_scanned"] = scanned
         df.attrs["notes_dropped_no_appt_link"] = dropped_no_appt
+        if first_note_shape is not None:
+            df.attrs["first_unmatched_note_shape"] = first_note_shape
         return df
     df["note_created_at"] = pd.to_datetime(df["note_created_at"], utc=True, errors="coerce")
     df["note_archived_at"] = pd.to_datetime(df["note_archived_at"], utc=True, errors="coerce")
@@ -645,6 +711,8 @@ def _fetch_treatment_notes_for_range(
     )
     df.attrs["notes_scanned"] = scanned
     df.attrs["notes_dropped_no_appt_link"] = dropped_no_appt
+    if first_note_shape is not None:
+        df.attrs["first_unmatched_note_shape"] = first_note_shape
     return df
 
 
@@ -760,6 +828,12 @@ def notes_completion(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange) 
     out.attrs["notes_dropped_no_appt_link"] = int(
         notes_df.attrs.get("notes_dropped_no_appt_link", 0)
     )
+    # v24 — propagate the structural diagnostic shape (if any) so the
+    # dashboard caption can render it. Only populated when notes were
+    # scanned but none had an appointment link our extractor recognised.
+    first_shape = notes_df.attrs.get("first_unmatched_note_shape")
+    if first_shape is not None:
+        out.attrs["first_unmatched_note_shape"] = first_shape
     if used_note_endpoint:
         # How many of the delivered appts actually found a matching note?
         out.attrs["notes_matched_appts"] = int(has_note.sum())
