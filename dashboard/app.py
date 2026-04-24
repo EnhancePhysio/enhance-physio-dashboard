@@ -531,6 +531,24 @@ def overview_tab(filters: dict):
                 parts.append(". Endpoint returned no data — numbers will be "
                              "pessimistic (same behaviour as v18 and earlier).")
             st.caption(" ".join(parts))
+            # v24 — when every note was dropped because our extractor
+            # couldn't find an appointment reference, dump the PHI-safe
+            # structural shape of the first unmatched note so we can see
+            # where Cliniko is actually stashing the appt link on this
+            # account. The shape contains only key names and reference
+            # URLs — never clinical content.
+            first_shape = notes_attrs.get("first_unmatched_note_shape")
+            if first_shape:
+                with st.expander(
+                    "🔬 Diagnostic: unmatched treatment_note shape "
+                    "(PHI-safe — keys only, no content)", expanded=False,
+                ):
+                    st.caption(
+                        "Copy the JSON below and send it back — it shows "
+                        "where this Cliniko account stores the appointment "
+                        "reference on treatment_notes records."
+                    )
+                    st.json(first_shape)
         # Diagnostic: confirm the audit merge actually attached audit_pct
         # with real values (not all-zero). This is the check that would have
         # caught the dtype-mismatch bug that silently made audits invisible.
