@@ -1,0 +1,76 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2026-04-13,Punctuality Lavington,Matt,Monday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Matt,Tuesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Matt,Wednesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Matt,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Matt,Friday,2,0,0,0,
+2026-04-13,Punctuality Lavington,Nath,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Nath,Tuesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Nath,Wednesday,4,0,0,0,
+2026-04-13,Punctuality Lavington,Nath,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Nath,Friday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Sarah H.,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Sarah H.,Tuesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Sarah H.,Wednesday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Sarah H.,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Sarah H.,Friday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Chris Ob,Monday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Chris Ob,Tuesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Chris Ob,Wednesday,8,0,0,0,
+2026-04-13,Punctuality Lavington,Chris Ob,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Chris Ob,Friday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Mitch,Monday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Mitch,Tuesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Mitch,Wednesday,8,0,0,0,
+2026-04-13,Punctuality Lavington,Mitch,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Mitch,Friday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Jess,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Jess,Tuesday,4,0,0,0,
+2026-04-13,Punctuality Lavington,Jess,Wednesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Jess,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Jess,Friday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Jackson,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Jackson,Tuesday,2,0,0,0,
+2026-04-13,Punctuality Lavington,Jackson,Wednesday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Jackson,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Jackson,Friday,0,0,0,0,leave
+2026-04-13,Punctuality Lavington,Sam,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Sam,Tuesday,7,0,0,0,
+2026-04-13,Punctuality Lavington,Sam,Wednesday,3,0,0,0,
+2026-04-13,Punctuality Lavington,Sam,Thursday,4,0,0,0,
+2026-04-13,Punctuality Lavington,Sam,Friday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Seb,Monday,1,0,0,0,
+2026-04-13,Punctuality Lavington,Seb,Tuesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Seb,Wednesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Seb,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Seb,Friday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Sarah C.,Monday,4,0,0,0,
+2026-04-13,Punctuality Lavington,Sarah C.,Tuesday,4,0,0,0,
+2026-04-13,Punctuality Lavington,Sarah C.,Wednesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Sarah C.,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Sarah C.,Friday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Ben,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Ben,Tuesday,7,0,0,0,
+2026-04-13,Punctuality Lavington,Ben,Wednesday,6,0,0,0,
+2026-04-13,Punctuality Lavington,Ben,Thursday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Ben,Friday,3,0,0,0,
+2026-04-13,Punctuality Lavington,Paddy,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Paddy,Tuesday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Paddy,Wednesday,6,0,0,0,
+2026-04-13,Punctuality Lavington,Paddy,Thursday,4,0,0,0,
+2026-04-13,Punctuality Lavington,Paddy,Friday,3,0,0,0,
+2026-04-13,Punctuality Lavington,Tori,Monday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Tori,Tuesday,6,0,0,0,
+2026-04-13,Punctuality Lavington,Tori,Wednesday,3,0,0,0,
+2026-04-13,Punctuality Lavington,Tori,Thursday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Tori,Friday,1,0,0,0,
+2026-04-13,Punctuality Lavington,Emily,Monday,7,0,0,0,
+2026-04-13,Punctuality Lavington,Emily,Tuesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Emily,Wednesday,10,0,0,0,
+2026-04-13,Punctuality Lavington,Emily,Thursday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Emily,Friday,2,0,0,0,
+2026-04-13,Punctuality Lavington,Tara,Monday,0,0,0,0,leave
+2026-04-13,Punctuality Lavington,Tara,Tuesday,0,0,0,0,leave
+2026-04-13,Punctuality Lavington,Tara,Wednesday,0,0,0,0,off
+2026-04-13,Punctuality Lavington,Tara,Thursday,5,0,0,0,
+2026-04-13,Punctuality Lavington,Tara,Friday,0,0,0,0,leave
