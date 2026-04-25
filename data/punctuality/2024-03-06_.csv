@@ -1,0 +1,71 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2024-03-06,,Matt,Monday,4,0,0,4,
+2024-03-06,,Matt,Tuesday,0,0,0,0,off
+2024-03-06,,Matt,Wednesday,0,0,0,0,off
+2024-03-06,,Matt,Thursday,0,0,0,0,off
+2024-03-06,,Matt,Friday,0,0,0,0,off
+2024-03-06,,Nath,Monday,0,0,0,0,off
+2024-03-06,,Nath,Tuesday,0,0,0,0,off
+2024-03-06,,Nath,Wednesday,5,0,0,5,
+2024-03-06,,Nath,Thursday,0,0,0,1,
+2024-03-06,,Nath,Friday,0,0,0,0,off
+2024-03-06,,Sarah H.,Monday,0,0,0,0,off
+2024-03-06,,Sarah H.,Tuesday,0,0,0,0,off
+2024-03-06,,Sarah H.,Wednesday,5,0,0,3,
+2024-03-06,,Sarah H.,Thursday,0,0,0,1,
+2024-03-06,,Sarah H.,Friday,3,0,0,0,
+2024-03-06,,Chris Ob,Monday,5,0,0,5,
+2024-03-06,,Chris Ob,Tuesday,0,0,0,5,
+2024-03-06,,Chris Ob,Wednesday,6,0,0,5,
+2024-03-06,,Chris Ob,Thursday,0,0,0,5,
+2024-03-06,,Chris Ob,Friday,0,0,0,0,off
+2024-03-06,,Mitch,Monday,5,0,0,0,
+2024-03-06,,Mitch,Tuesday,0,0,0,2,
+2024-03-06,,Mitch,Wednesday,8,0,0,5,
+2024-03-06,,Mitch,Thursday,0,0,0,3,
+2024-03-06,,Mitch,Friday,0,0,0,0,off
+2024-03-06,,Jess,Monday,0,0,0,0,off
+2024-03-06,,Jess,Tuesday,0,0,0,4,
+2024-03-06,,Jess,Wednesday,6,0,0,1,
+2024-03-06,,Jess,Thursday,0,0,0,0,off
+2024-03-06,,Jess,Friday,0,0,0,0,off
+2024-03-06,,Jackson,Monday,5,0,0,5,
+2024-03-06,,Jackson,Tuesday,6,0,0,5,
+2024-03-06,,Jackson,Wednesday,4,0,0,5,
+2024-03-06,,Jackson,Thursday,0,0,0,3,
+2024-03-06,,Jackson,Friday,0,0,0,0,off
+2024-03-06,,Sam,Monday,0,0,0,0,off
+2024-03-06,,Sam,Tuesday,7,0,0,5,
+2024-03-06,,Sam,Wednesday,5,0,0,2,
+2024-03-06,,Sam,Thursday,0,0,0,2,
+2024-03-06,,Sam,Friday,2,0,0,0,
+2024-03-06,,Seb,Monday,7,0,0,5,
+2024-03-06,,Seb,Tuesday,0,0,0,0,off
+2024-03-06,,Seb,Wednesday,5,0,0,3,
+2024-03-06,,Seb,Thursday,0,0,0,0,off
+2024-03-06,,Seb,Friday,0,0,0,0,off
+2024-03-06,,Sarah C.,Monday,4,0,0,4,
+2024-03-06,,Sarah C.,Tuesday,0,0,0,3,
+2024-03-06,,Sarah C.,Wednesday,0,0,0,1,
+2024-03-06,,Sarah C.,Thursday,0,0,0,0,off
+2024-03-06,,Sarah C.,Friday,0,0,0,0,off
+2024-03-06,,Ben,Monday,0,0,0,0,off
+2024-03-06,,Ben,Tuesday,7,0,0,5,
+2024-03-06,,Ben,Wednesday,6,0,0,5,
+2024-03-06,,Ben,Thursday,0,0,0,2,
+2024-03-06,,Ben,Friday,1,0,0,0,
+2024-03-06,,Paddy,Monday,0,0,0,0,off
+2024-03-06,,Paddy,Tuesday,4,0,0,3,
+2024-03-06,,Paddy,Wednesday,3,0,0,4,
+2024-03-06,,Paddy,Thursday,3,0,0,5,
+2024-03-06,,Paddy,Friday,5,0,0,2,
+2024-03-06,,Tori,Monday,0,0,0,0,off
+2024-03-06,,Tori,Tuesday,0,0,0,4,
+2024-03-06,,Tori,Wednesday,6,0,0,5,
+2024-03-06,,Tori,Thursday,0,0,0,4,
+2024-03-06,,Tori,Friday,4,0,0,0,
+2024-03-06,,Emily,Monday,7,0,0,5,
+2024-03-06,,Emily,Tuesday,0,0,0,1,
+2024-03-06,,Emily,Wednesday,6,0,0,6,
+2024-03-06,,Emily,Thursday,0,0,0,5,
+2024-03-06,,Emily,Friday,6,0,0,0,
