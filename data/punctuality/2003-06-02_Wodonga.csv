@@ -1,0 +1,51 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2003-06-02,Wodonga,Maya,Monday,0,0,0,0,leave
+2003-06-02,Wodonga,Maya,Tuesday,0,0,0,0,leave
+2003-06-02,Wodonga,Maya,Wednesday,0,0,0,0,leave
+2003-06-02,Wodonga,Maya,Thursday,0,0,0,0,leave
+2003-06-02,Wodonga,Maya,Friday,0,0,0,0,leave
+2003-06-02,Wodonga,Chris Oats,Monday,0,0,0,0,sick
+2003-06-02,Wodonga,Chris Oats,Tuesday,0,0,0,0,
+2003-06-02,Wodonga,Chris Oats,Wednesday,0,0,0,0,
+2003-06-02,Wodonga,Chris Oats,Thursday,0,0,0,0,
+2003-06-02,Wodonga,Chris Oats,Friday,0,0,0,0,sick
+2003-06-02,Wodonga,Dave,Monday,0,0,4,0,unreadable
+2003-06-02,Wodonga,Dave,Tuesday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Dave,Wednesday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Dave,Thursday,4,0,0,0,unreadable
+2003-06-02,Wodonga,Dave,Friday,9,0,0,0,unreadable
+2003-06-02,Wodonga,Chris Obi,Monday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Chris Obi,Tuesday,2,0,0,0,unreadable
+2003-06-02,Wodonga,Chris Obi,Wednesday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Chris Obi,Thursday,0,0,4,0,unreadable
+2003-06-02,Wodonga,Chris Obi,Friday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mitch,Monday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mitch,Tuesday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mitch,Wednesday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mitch,Thursday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mitch,Friday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Jayde,Monday,0,0,0,0,leave
+2003-06-02,Wodonga,Jayde,Tuesday,0,0,0,0,
+2003-06-02,Wodonga,Jayde,Wednesday,0,0,0,0,leave
+2003-06-02,Wodonga,Jayde,Thursday,0,0,0,0,leave
+2003-06-02,Wodonga,Jayde,Friday,0,0,0,0,leave
+2003-06-02,Wodonga,Emma,Monday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Emma,Tuesday,0,0,0,0,
+2003-06-02,Wodonga,Emma,Wednesday,0,0,0,0,na
+2003-06-02,Wodonga,Emma,Thursday,0,0,4,0,unreadable
+2003-06-02,Wodonga,Emma,Friday,0,0,0,0,na
+2003-06-02,Wodonga,Sam,Monday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Sam,Tuesday,2,0,0,0,unreadable
+2003-06-02,Wodonga,Sam,Wednesday,1,0,0,0,unreadable
+2003-06-02,Wodonga,Sam,Thursday,0,0,4,0,unreadable
+2003-06-02,Wodonga,Sam,Friday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Emily,Monday,0,0,0,0,
+2003-06-02,Wodonga,Emily,Tuesday,0,0,0,0,
+2003-06-02,Wodonga,Emily,Wednesday,0,0,0,0,
+2003-06-02,Wodonga,Emily,Thursday,2,0,0,0,unreadable
+2003-06-02,Wodonga,Emily,Friday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mackensey,Monday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mackensey,Tuesday,0,0,0,0,
+2003-06-02,Wodonga,Mackensey,Wednesday,0,0,0,0,unreadable
+2003-06-02,Wodonga,Mackensey,Thursday,0,0,2,0,unreadable
+2003-06-02,Wodonga,Mackensey,Friday,0,0,0,0,unreadable
