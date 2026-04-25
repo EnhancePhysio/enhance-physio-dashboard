@@ -1,0 +1,76 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2020-03-16,Jess's Manor,Matt,Monday,3,0,0,0,
+2020-03-16,Jess's Manor,Matt,Tuesday,0,0,3,0,
+2020-03-16,Jess's Manor,Matt,Wednesday,0,0,0,0,off
+2020-03-16,Jess's Manor,Matt,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Matt,Friday,0,0,0,0,off
+2020-03-16,Jess's Manor,Nath,Monday,0,0,0,0,off
+2020-03-16,Jess's Manor,Nath,Tuesday,0,0,0,0,off
+2020-03-16,Jess's Manor,Nath,Wednesday,2,0,0,0,
+2020-03-16,Jess's Manor,Nath,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Nath,Friday,0,0,0,0,off
+2020-03-16,Jess's Manor,Sarah H.,Monday,0,0,0,0,off
+2020-03-16,Jess's Manor,Sarah H.,Tuesday,0,0,0,0,off
+2020-03-16,Jess's Manor,Sarah H.,Wednesday,3,0,0,0,
+2020-03-16,Jess's Manor,Sarah H.,Thursday,3,0,0,0,
+2020-03-16,Jess's Manor,Sarah H.,Friday,5,0,0,0,
+2020-03-16,Jess's Manor,Chris Ob,Monday,4,0,4,0,
+2020-03-16,Jess's Manor,Chris Ob,Tuesday,0,0,4,0,
+2020-03-16,Jess's Manor,Chris Ob,Wednesday,5,0,0,0,
+2020-03-16,Jess's Manor,Chris Ob,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Chris Ob,Friday,0,0,0,0,off
+2020-03-16,Jess's Manor,Mitch,Monday,5,0,4,0,
+2020-03-16,Jess's Manor,Mitch,Tuesday,0,0,0,0,unreadable
+2020-03-16,Jess's Manor,Mitch,Wednesday,10,0,0,0,
+2020-03-16,Jess's Manor,Mitch,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Mitch,Friday,0,0,0,0,off
+2020-03-16,Jess's Manor,Jess,Monday,0,0,0,0,off
+2020-03-16,Jess's Manor,Jess,Tuesday,3,0,0,0,
+2020-03-16,Jess's Manor,Jess,Wednesday,3,0,0,0,
+2020-03-16,Jess's Manor,Jess,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Jess,Friday,4,0,3,0,
+2020-03-16,Jess's Manor,Jackson,Monday,0,3,0,0,
+2020-03-16,Jess's Manor,Jackson,Tuesday,3,0,0,0,
+2020-03-16,Jess's Manor,Jackson,Wednesday,0,0,4,0,
+2020-03-16,Jess's Manor,Jackson,Thursday,0,0,2,0,
+2020-03-16,Jess's Manor,Jackson,Friday,0,0,0,0,off
+2020-03-16,Jess's Manor,Sam,Monday,0,0,0,0,off
+2020-03-16,Jess's Manor,Sam,Tuesday,5,0,0,0,
+2020-03-16,Jess's Manor,Sam,Wednesday,4,0,4,0,
+2020-03-16,Jess's Manor,Sam,Thursday,4,0,4,0,
+2020-03-16,Jess's Manor,Sam,Friday,4,0,4,0,
+2020-03-16,Jess's Manor,Seb,Monday,6,0,4,0,
+2020-03-16,Jess's Manor,Seb,Tuesday,0,0,0,0,off
+2020-03-16,Jess's Manor,Seb,Wednesday,0,0,0,0,off
+2020-03-16,Jess's Manor,Seb,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Seb,Friday,0,0,0,0,off
+2020-03-16,Jess's Manor,Sarah C.,Monday,4,0,4,0,
+2020-03-16,Jess's Manor,Sarah C.,Tuesday,4,0,0,0,
+2020-03-16,Jess's Manor,Sarah C.,Wednesday,4,0,0,0,
+2020-03-16,Jess's Manor,Sarah C.,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Sarah C.,Friday,0,0,0,0,off
+2020-03-16,Jess's Manor,Ben,Monday,0,0,0,0,off
+2020-03-16,Jess's Manor,Ben,Tuesday,0,0,0,0,off
+2020-03-16,Jess's Manor,Ben,Wednesday,8,0,5,0,
+2020-03-16,Jess's Manor,Ben,Thursday,3,0,0,0,
+2020-03-16,Jess's Manor,Ben,Friday,3,0,5,0,
+2020-03-16,Jess's Manor,Paddy,Monday,0,0,0,0,off
+2020-03-16,Jess's Manor,Paddy,Tuesday,5,0,5,0,
+2020-03-16,Jess's Manor,Paddy,Wednesday,0,0,0,0,off
+2020-03-16,Jess's Manor,Paddy,Thursday,5,0,5,0,
+2020-03-16,Jess's Manor,Paddy,Friday,5,0,0,0,
+2020-03-16,Jess's Manor,Tori,Monday,0,0,0,0,off
+2020-03-16,Jess's Manor,Tori,Tuesday,5,0,0,0,
+2020-03-16,Jess's Manor,Tori,Wednesday,5,0,4,0,
+2020-03-16,Jess's Manor,Tori,Thursday,2,0,0,0,
+2020-03-16,Jess's Manor,Tori,Friday,4,0,4,0,
+2020-03-16,Jess's Manor,Emily,Monday,7,0,5,0,
+2020-03-16,Jess's Manor,Emily,Tuesday,0,0,5,0,
+2020-03-16,Jess's Manor,Emily,Wednesday,4,0,2,0,
+2020-03-16,Jess's Manor,Emily,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Emily,Friday,4,0,5,0,
+2020-03-16,Jess's Manor,Tara,Monday,1,0,0,0,
+2020-03-16,Jess's Manor,Tara,Tuesday,1,0,0,0,
+2020-03-16,Jess's Manor,Tara,Wednesday,2,0,0,0,
+2020-03-16,Jess's Manor,Tara,Thursday,0,0,0,0,off
+2020-03-16,Jess's Manor,Tara,Friday,0,0,0,0,off
