@@ -1,0 +1,56 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2025-03-16,Wodonga,Maya,Monday,9,0,0,0,
+2025-03-16,Wodonga,Maya,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Maya,Wednesday,5,0,0,0,
+2025-03-16,Wodonga,Maya,Thursday,7,0,0,0,
+2025-03-16,Wodonga,Maya,Friday,6,0,0,0,
+2025-03-16,Wodonga,Chris Oats,Monday,11,0,0,0,
+2025-03-16,Wodonga,Chris Oats,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Chris Oats,Wednesday,0,0,0,0,off
+2025-03-16,Wodonga,Chris Oats,Thursday,0,0,0,0,off
+2025-03-16,Wodonga,Chris Oats,Friday,0,0,0,0,off
+2025-03-16,Wodonga,Dave,Monday,0,0,0,0,off
+2025-03-16,Wodonga,Dave,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Dave,Wednesday,0,0,0,0,sick
+2025-03-16,Wodonga,Dave,Thursday,5,0,0,0,
+2025-03-16,Wodonga,Dave,Friday,1,0,0,0,
+2025-03-16,Wodonga,Chris Obi,Monday,0,0,0,0,off
+2025-03-16,Wodonga,Chris Obi,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Chris Obi,Wednesday,0,0,0,0,off
+2025-03-16,Wodonga,Chris Obi,Thursday,7,0,0,0,
+2025-03-16,Wodonga,Chris Obi,Friday,0,0,0,0,sick
+2025-03-16,Wodonga,Mitch,Monday,0,0,0,0,off
+2025-03-16,Wodonga,Mitch,Tuesday,8,0,0,0,
+2025-03-16,Wodonga,Mitch,Wednesday,0,0,0,0,off
+2025-03-16,Wodonga,Mitch,Thursday,11,0,0,0,
+2025-03-16,Wodonga,Mitch,Friday,8,0,0,0,
+2025-03-16,Wodonga,Jayde,Monday,0,0,0,0,off
+2025-03-16,Wodonga,Jayde,Tuesday,14,0,0,0,
+2025-03-16,Wodonga,Jayde,Wednesday,0,0,0,0,off
+2025-03-16,Wodonga,Jayde,Thursday,0,0,0,0,off
+2025-03-16,Wodonga,Jayde,Friday,5,0,0,0,
+2025-03-16,Wodonga,Emma,Monday,13,0,0,0,
+2025-03-16,Wodonga,Emma,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Emma,Wednesday,11,0,0,0,
+2025-03-16,Wodonga,Emma,Thursday,0,0,0,0,na
+2025-03-16,Wodonga,Emma,Friday,0,0,0,0,na
+2025-03-16,Wodonga,Sam,Monday,11,0,0,0,
+2025-03-16,Wodonga,Sam,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Sam,Wednesday,8,0,0,0,
+2025-03-16,Wodonga,Sam,Thursday,2,0,0,0,
+2025-03-16,Wodonga,Sam,Friday,1,0,0,0,
+2025-03-16,Wodonga,Emily,Monday,0,0,0,0,off
+2025-03-16,Wodonga,Emily,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Emily,Wednesday,6,0,0,0,
+2025-03-16,Wodonga,Emily,Thursday,0,0,0,0,off
+2025-03-16,Wodonga,Emily,Friday,6,0,0,0,
+2025-03-16,Wodonga,Mackensey,Monday,6,0,0,0,
+2025-03-16,Wodonga,Mackensey,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Mackensey,Wednesday,9,0,0,0,
+2025-03-16,Wodonga,Mackensey,Thursday,0,0,0,0,off
+2025-03-16,Wodonga,Mackensey,Friday,1,0,0,0,
+2025-03-16,Wodonga,Tara,Monday,0,0,0,0,off
+2025-03-16,Wodonga,Tara,Tuesday,0,0,0,0,off
+2025-03-16,Wodonga,Tara,Wednesday,0,0,0,0,off
+2025-03-16,Wodonga,Tara,Thursday,0,0,0,0,off
+2025-03-16,Wodonga,Tara,Friday,4,0,0,0,
