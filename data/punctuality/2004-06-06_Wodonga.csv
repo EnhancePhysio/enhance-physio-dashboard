@@ -1,0 +1,56 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2004-06-06,Wodonga,Maya,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Maya,Tuesday,0,0,0,0,leave
+2004-06-06,Wodonga,Maya,Wednesday,3,0,0,0,unreadable
+2004-06-06,Wodonga,Maya,Thursday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Maya,Friday,0,5,0,0,unreadable
+2004-06-06,Wodonga,Chris Oats,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Chris Oats,Tuesday,0,0,0,0,off
+2004-06-06,Wodonga,Chris Oats,Wednesday,0,0,0,0,off
+2004-06-06,Wodonga,Chris Oats,Thursday,0,0,0,0,off
+2004-06-06,Wodonga,Chris Oats,Friday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Dave,Monday,0,0,0,0,leave
+2004-06-06,Wodonga,Dave,Tuesday,0,0,0,0,leave
+2004-06-06,Wodonga,Dave,Wednesday,0,0,0,0,leave
+2004-06-06,Wodonga,Dave,Thursday,0,0,0,0,leave
+2004-06-06,Wodonga,Dave,Friday,0,0,0,0,leave
+2004-06-06,Wodonga,Chris Obi,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Chris Obi,Tuesday,0,0,0,0,off
+2004-06-06,Wodonga,Chris Obi,Wednesday,7,0,0,0,unreadable
+2004-06-06,Wodonga,Chris Obi,Thursday,0,0,0,0,off
+2004-06-06,Wodonga,Chris Obi,Friday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Mitch,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Mitch,Tuesday,0,0,0,0,sick
+2004-06-06,Wodonga,Mitch,Wednesday,8,0,0,0,unreadable
+2004-06-06,Wodonga,Mitch,Thursday,0,0,0,0,sick
+2004-06-06,Wodonga,Mitch,Friday,0,0,0,0,sick
+2004-06-06,Wodonga,Jayde,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Jayde,Tuesday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Jayde,Wednesday,0,0,0,0,off
+2004-06-06,Wodonga,Jayde,Thursday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Jayde,Friday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Emma,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Emma,Tuesday,0,0,0,0,off
+2004-06-06,Wodonga,Emma,Wednesday,11,0,0,0,unreadable
+2004-06-06,Wodonga,Emma,Thursday,0,8,0,0,unreadable
+2004-06-06,Wodonga,Emma,Friday,0,0,0,0,off
+2004-06-06,Wodonga,Sam,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Sam,Tuesday,1,0,0,0,unreadable
+2004-06-06,Wodonga,Sam,Wednesday,14,0,0,0,unreadable
+2004-06-06,Wodonga,Sam,Thursday,0,0,0,0,off
+2004-06-06,Wodonga,Sam,Friday,0,0,0,0,off
+2004-06-06,Wodonga,Emily,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Emily,Tuesday,0,0,0,0,leave
+2004-06-06,Wodonga,Emily,Wednesday,9,0,0,0,unreadable
+2004-06-06,Wodonga,Emily,Thursday,0,0,0,0,leave
+2004-06-06,Wodonga,Emily,Friday,0,0,0,0,off
+2004-06-06,Wodonga,Mackensey,Monday,0,0,0,0,unreadable
+2004-06-06,Wodonga,Mackensey,Tuesday,0,0,0,0,off
+2004-06-06,Wodonga,Mackensey,Wednesday,13,0,0,0,unreadable
+2004-06-06,Wodonga,Mackensey,Thursday,16,0,0,0,unreadable
+2004-06-06,Wodonga,Mackensey,Friday,0,0,0,0,off
+2004-06-06,Wodonga,Tara,Monday,0,0,0,0,off
+2004-06-06,Wodonga,Tara,Tuesday,0,0,0,0,off
+2004-06-06,Wodonga,Tara,Wednesday,0,0,0,0,off
+2004-06-06,Wodonga,Tara,Thursday,0,0,0,0,leave
+2004-06-06,Wodonga,Tara,Friday,0,0,0,0,leave
