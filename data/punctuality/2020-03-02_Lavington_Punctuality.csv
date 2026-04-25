@@ -1,0 +1,71 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2020-03-02,Lavington Punctuality,Matt,Monday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Matt,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Matt,Wednesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Matt,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Matt,Friday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Nath,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Nath,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Nath,Wednesday,0,7,0,0,unreadable
+2020-03-02,Lavington Punctuality,Nath,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Nath,Friday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Sarah H.,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Sarah H.,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Sarah H.,Wednesday,0,2,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sarah H.,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Sarah H.,Friday,0,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Chris Ob,Monday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Chris Ob,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Chris Ob,Wednesday,0,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Chris Ob,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Chris Ob,Friday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Mitch,Monday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Mitch,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Mitch,Wednesday,0,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Mitch,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Mitch,Friday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Jess,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Jess,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Jess,Wednesday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Jess,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Jess,Friday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Jackson,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Jackson,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Jackson,Wednesday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Jackson,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Jackson,Friday,3,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sam,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Sam,Tuesday,3,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sam,Wednesday,3,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sam,Thursday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sam,Friday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Seb,Monday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Seb,Tuesday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Seb,Wednesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Seb,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Seb,Friday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sarah C.,Monday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sarah C.,Tuesday,3,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Sarah C.,Wednesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Sarah C.,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Sarah C.,Friday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Ben,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Ben,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Ben,Wednesday,3,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Ben,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Ben,Friday,3,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Paddy,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Paddy,Tuesday,3,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Paddy,Wednesday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Paddy,Thursday,0,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Paddy,Friday,5,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Tori,Monday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Tori,Tuesday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Tori,Wednesday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Tori,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Tori,Friday,4,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Emily,Monday,6,0,0,0,unreadable
+2020-03-02,Lavington Punctuality,Emily,Tuesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Emily,Wednesday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Emily,Thursday,0,0,0,0,off
+2020-03-02,Lavington Punctuality,Emily,Friday,7,0,0,0,unreadable
