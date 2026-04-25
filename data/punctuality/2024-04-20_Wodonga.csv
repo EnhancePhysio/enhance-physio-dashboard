@@ -1,0 +1,56 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2024-04-20,Wodonga,Maya,Monday,6,0,0,0,
+2024-04-20,Wodonga,Maya,Tuesday,7,0,0,0,
+2024-04-20,Wodonga,Maya,Wednesday,6,0,0,0,
+2024-04-20,Wodonga,Maya,Thursday,0,0,0,0,off
+2024-04-20,Wodonga,Maya,Friday,8,0,0,0,
+2024-04-20,Wodonga,Chris Oats,Monday,7,0,0,0,
+2024-04-20,Wodonga,Chris Oats,Tuesday,0,0,0,0,off
+2024-04-20,Wodonga,Chris Oats,Wednesday,0,0,0,0,off
+2024-04-20,Wodonga,Chris Oats,Thursday,0,0,0,0,off
+2024-04-20,Wodonga,Chris Oats,Friday,5,0,0,0,
+2024-04-20,Wodonga,Dave,Monday,0,0,0,0,unreadable
+2024-04-20,Wodonga,Dave,Tuesday,6,0,3,0,
+2024-04-20,Wodonga,Dave,Wednesday,2,0,0,0,
+2024-04-20,Wodonga,Dave,Thursday,4,0,4,0,
+2024-04-20,Wodonga,Dave,Friday,10,0,6,0,
+2024-04-20,Wodonga,Chris Obi,Monday,0,0,0,0,unreadable
+2024-04-20,Wodonga,Chris Obi,Tuesday,0,0,0,0,sick
+2024-04-20,Wodonga,Chris Obi,Wednesday,1,0,0,0,
+2024-04-20,Wodonga,Chris Obi,Thursday,0,0,0,0,sick
+2024-04-20,Wodonga,Chris Obi,Friday,11,0,0,0,
+2024-04-20,Wodonga,Mitch,Monday,0,0,0,0,off
+2024-04-20,Wodonga,Mitch,Tuesday,9,0,4,0,
+2024-04-20,Wodonga,Mitch,Wednesday,0,0,0,0,off
+2024-04-20,Wodonga,Mitch,Thursday,11,0,9,0,
+2024-04-20,Wodonga,Mitch,Friday,9,0,0,0,
+2024-04-20,Wodonga,Jayde,Monday,0,0,0,0,off
+2024-04-20,Wodonga,Jayde,Tuesday,13,0,0,0,
+2024-04-20,Wodonga,Jayde,Wednesday,0,0,0,0,off
+2024-04-20,Wodonga,Jayde,Thursday,6,0,4,0,
+2024-04-20,Wodonga,Jayde,Friday,0,0,0,0,off
+2024-04-20,Wodonga,Emma,Monday,11,0,0,0,
+2024-04-20,Wodonga,Emma,Tuesday,10,0,8,0,
+2024-04-20,Wodonga,Emma,Wednesday,0,0,0,0,leave
+2024-04-20,Wodonga,Emma,Thursday,0,0,0,0,leave
+2024-04-20,Wodonga,Emma,Friday,0,0,0,0,leave
+2024-04-20,Wodonga,Sam,Monday,0,0,0,0,sick
+2024-04-20,Wodonga,Sam,Tuesday,12,0,9,0,
+2024-04-20,Wodonga,Sam,Wednesday,0,0,0,0,off
+2024-04-20,Wodonga,Sam,Thursday,0,0,0,0,sick
+2024-04-20,Wodonga,Sam,Friday,0,0,0,0,off
+2024-04-20,Wodonga,Emily,Monday,0,0,0,0,off
+2024-04-20,Wodonga,Emily,Tuesday,9,0,9,0,
+2024-04-20,Wodonga,Emily,Wednesday,0,0,0,0,off
+2024-04-20,Wodonga,Emily,Thursday,10,0,8,0,
+2024-04-20,Wodonga,Emily,Friday,0,0,0,0,off
+2024-04-20,Wodonga,Mackensey,Monday,11,0,0,0,
+2024-04-20,Wodonga,Mackensey,Tuesday,12,0,9,0,
+2024-04-20,Wodonga,Mackensey,Wednesday,3,0,0,0,
+2024-04-20,Wodonga,Mackensey,Thursday,4,0,9,0,
+2024-04-20,Wodonga,Mackensey,Friday,0,0,0,0,off
+2024-04-20,Wodonga,Tara,Monday,0,0,0,0,off
+2024-04-20,Wodonga,Tara,Tuesday,0,0,0,0,off
+2024-04-20,Wodonga,Tara,Wednesday,0,0,0,0,off
+2024-04-20,Wodonga,Tara,Thursday,0,0,0,0,off
+2024-04-20,Wodonga,Tara,Friday,5,4,0,0,
