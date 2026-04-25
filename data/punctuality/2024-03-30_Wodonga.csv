@@ -1,0 +1,56 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2024-03-30,Wodonga,Maya,Monday,3,0,0,0,unreadable
+2024-03-30,Wodonga,Maya,Tuesday,2,0,0,0,unreadable
+2024-03-30,Wodonga,Maya,Wednesday,1,0,0,0,unreadable
+2024-03-30,Wodonga,Maya,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Maya,Friday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Oats,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Oats,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Oats,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Oats,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Oats,Friday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Dave,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Dave,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Dave,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Dave,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Dave,Friday,0,0,0,0,off
+2024-03-30,Wodonga,Chris Obi,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Obi,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Obi,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Obi,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Chris Obi,Friday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mitch,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mitch,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mitch,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mitch,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mitch,Friday,0,0,0,0,off
+2024-03-30,Wodonga,Jayde,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Jayde,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Jayde,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Jayde,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Jayde,Friday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emma,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emma,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emma,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emma,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emma,Friday,0,0,0,0,off
+2024-03-30,Wodonga,Sam,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Sam,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Sam,Wednesday,0,0,0,0,leave
+2024-03-30,Wodonga,Sam,Thursday,0,0,0,0,leave
+2024-03-30,Wodonga,Sam,Friday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emily,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emily,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emily,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emily,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Emily,Friday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mackensey,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mackensey,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mackensey,Wednesday,2,0,0,0,unreadable
+2024-03-30,Wodonga,Mackensey,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Mackensey,Friday,0,0,0,0,off
+2024-03-30,Wodonga,Tara,Monday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Tara,Tuesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Tara,Wednesday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Tara,Thursday,0,0,0,0,unreadable
+2024-03-30,Wodonga,Tara,Friday,0,0,0,0,off
