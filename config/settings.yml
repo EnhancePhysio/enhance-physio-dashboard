@@ -1,0 +1,372 @@
+# Dashboard configuration.
+# All thresholds and keyword lists live here so you can tune them without
+# editing Python code. Reload the dashboard after any change.
+
+timezone: Australia/Sydney
+financial_year_start_month: 7   # AU FY: Jul 1
+
+# Utilisation — keywords used to classify unavailable_blocks.
+# Case-insensitive substring match.
+utilisation:
+  # Denominator = days_worked × standard_hours_per_day.
+  # If your full-time roster is an 8-hour clinic day, leave at 8.
+  # 7.6 is common for clinics that exclude a paid break.
+  standard_hours_per_day: 8.0
+  qualifying_keywords:
+    - billable report
+    - case conference
+    - billable
+    - mentoring
+    - monthly meeting
+    - inservice
+    - catch up
+    - excellence program
+  excluded_keywords:
+    - showing
+    - do not book
+    - hold
+    - lunch
+    - break
+  # v26.6.2: days_worked subtracts ONLY these keywords from the working
+  # window. "Do not book" / "hold" / "showing" are manual overrides the
+  # practitioner put in while still on-site — they should not reduce the
+  # days-worked count. Only genuine off-clock time does.
+  # (These still subtract from the utilisation denominator via the
+  # excluded_keywords list above — that behaviour is unchanged.)
+  break_keywords:
+    - lunch
+    - break
+
+  # v26.7: leave-type blocks ALSO reduce available time for days_worked
+  # (annual leave, sick leave, personal leave, public holidays). These
+  # use full regex so short codes like "AL"/"SL"/"PL"/"PH" get
+  # word-boundary matching (otherwise "AL" would false-match "Albury",
+  # "PL" would match "plan", etc). Longer phrases are substring-matched.
+  # Case-insensitive throughout ((?i) prefix).
+  # Checked BEFORE qualifying_keywords so a block labelled "AL billable"
+  # still counts as leave, not admin work.
+  # Like break_keywords, leave minutes subtract from BOTH days_worked AND
+  # the utilisation denominator (so leave days don't drag your % down).
+  leave_patterns:
+    # Short leave codes — word-boundary required to avoid false matches
+    - '(?i)\bAL\b'              # Annual Leave
+    - '(?i)\bSL\b'              # Sick Leave
+    - '(?i)\bPL\b'              # Personal Leave
+    - '(?i)\bPH\b'              # Public Holiday
+    - '(?i)\bLSL\b'             # Long Service Leave
+    # Full leave phrases
+    - '(?i)annual leave'
+    - '(?i)sick leave'
+    - '(?i)personal leave'
+    - '(?i)carer.?s? leave'
+    - '(?i)parental leave'
+    - '(?i)maternity leave'
+    - '(?i)paternity leave'
+    - '(?i)bereavement'
+    - '(?i)compassionate'
+    - '(?i)unpaid leave'
+    - '(?i)long service'
+    - '(?i)study leave'
+    - '(?i)leave of absence'
+    - '(?i)public holiday'
+    - '(?i)on leave'
+    # Fortnightly-roster workaround — Cliniko only supports weekly rosters,
+    # so practitioners on a fortnightly pattern manually block the days
+    # they don't work. Those blocks should reduce days_worked.
+    - '(?i)does not work'
+    - '(?i)doesn.?t work'       # "doesn't work" / "doesnt work"
+    - '(?i)not working'
+    - '(?i)day off'
+    - '(?i)rostered off'
+    - '(?i)\bRDO\b'             # Rostered Day Off
+    - '(?i)non.?working'        # "non-working" or "non working"
+    # Common Australian public holidays (so a block just named
+    # "Christmas" or "ANZAC" still counts as leave)
+    - '(?i)new year'
+    - '(?i)australia day'
+    - '(?i)good friday'
+    - '(?i)easter'              # Easter Monday/Sunday/Saturday
+    - '(?i)\banzac\b'
+    - '(?i)king.?s birthday'
+    - '(?i)queen.?s birthday'
+    - '(?i)labour day'
+    - '(?i)labor day'
+    - '(?i)melbourne cup'
+    - '(?i)christmas'
+    - '(?i)xmas'
+    - '(?i)boxing day'
+
+# v26.8 — Injury-area analytics
+# Categorises every initial-consult treatment note into one of 12 buckets.
+# Pass A reads the "Area of Injury" checkbox question directly; Pass B
+# falls back to keyword-scanning the HoPC paragraph.
+# All keyword matching is case-insensitive with word boundaries (so "hip"
+# matches "hip" but not "ship"). To handle plurals/compounds, list common
+# forms explicitly (e.g. both "knee" and "kneecap").
+injuries:
+  area_question_names:
+    - 'Area of Injury'
+    - 'Injury Area'
+    - 'Body Region'
+    - 'Region'
+    - 'Area'
+  presenting_complaint_names:
+    - 'HoPC'
+    - 'History of Presenting Complaint'
+    - 'Presenting Complaint'
+    - 'Complaint history'
+    - 'Chief Complaint'
+  categories:
+    Neck/Head:
+      - neck
+      - cervical
+      - head
+      - headache
+      - migraine
+      - TMJ
+      - jaw
+      - concussion
+      - whiplash
+      - vertigo
+      - BPPV
+      - dizziness
+    Upper Back / Trunk:
+      - thoracic
+      - upper back
+      - mid back
+      - rib
+      - ribs
+      - trunk
+      - chest
+      - sternum
+      - costochondritis
+      - intercostal
+    Lower Back:
+      - lumbar
+      - lower back
+      - low back
+      - LBP
+      - sacrum
+      - sacroiliac
+      - SI joint
+      - sciatica
+      - disc
+      - facet
+      - spondylolisthesis
+      - spondylolysis
+      - pars defect
+    Hip / Groin:
+      - hip
+      - groin
+      - glute
+      - gluteal
+      - piriformis
+      - ITB
+      - iliotibial
+      - psoas
+      - adductor
+      - femoroacetabular
+      - FAI
+      - labral tear
+      - trochanter
+      - trochanteric
+    Knee:
+      - knee
+      - kneecap
+      - patella
+      - patellar
+      - ACL
+      - MCL
+      - LCL
+      - PCL
+      - meniscus
+      - meniscal
+      - Osgood
+      - Schlatter
+      - chondromalacia
+      - jumpers knee
+      - runners knee
+      - patellofemoral
+    Ankle:
+      - ankle
+      - Achilles
+      - peroneal
+      - syndesmosis
+      - high ankle
+    Foot:
+      - foot
+      - feet
+      - plantar
+      - heel
+      - toe
+      - midfoot
+      - forefoot
+      - bunion
+      - hallux
+      - metatarsal
+      - Lisfranc
+      - Lis Franc
+      - Mortons
+      - Morton's
+      - sesamoid
+    Shoulder:
+      - shoulder
+      - AC joint
+      - ACJ
+      - acromioclavicular
+      - rotator cuff
+      - supraspinatus
+      - infraspinatus
+      - subscapularis
+      - teres minor
+      - biceps tendon
+      - labrum
+      - SLAP
+      - glenohumeral
+      - frozen shoulder
+      - subacromial
+      - scapula
+    Elbow:
+      - elbow
+      - tennis elbow
+      - golfers elbow
+      - golfer's elbow
+      - lateral epicondyle
+      - medial epicondyle
+      - epicondylitis
+      - olecranon
+      - ulnar nerve
+    Wrist/Hand:
+      - wrist
+      - hand
+      - finger
+      - thumb
+      - carpal
+      - TFCC
+      - de Quervain
+      - DeQuervain
+      - trigger finger
+      - mallet finger
+      - scaphoid
+      - Colles
+      - phalange
+      - metacarpal
+    Soft Tissue:
+      - hamstring
+      - calf
+      - gastrocnemius
+      - soleus
+      - quadriceps
+      - quad strain
+      - vastus
+
+# Audit — 5 checks applied to every new EPC + Private patient.
+audit:
+  # How long a per-patient audit result stays valid before it's re-run.
+  # Set to 0 to disable expiry (cached forever). 30 days is a sensible
+  # default: long enough that weekly/monthly audits reuse prior work, short
+  # enough that a patient whose RAP was uploaded late still gets re-checked.
+  cache_ttl_days: 30
+
+  # Check 1: RAP attachment
+  rap_attachment_pattern: '(?i)(RAP|Recommended Action Plan)'
+
+  # Check 2: Wibbi exercises
+  wibbi_uploader_name: 'Matthew Lewington'
+  wibbi_name_pattern: '(?i)(wibbi|HEP|exercise|exercises|gym)'
+
+  # Check 3: Correspondence — referrer sources that are N/A (no letter expected).
+  # Per Matt's v26.4 rule, a letter is required for ALL EPC patients + any
+  # Private patient referred by a Contact (i.e. a named doctor in Cliniko's
+  # Contacts). Generic/social sources below stay N/A.
+  correspondence_na_referrer_values:
+    - ''
+    - google
+    - facebook
+    - instagram
+    - social media
+    - family
+    - friend
+    - self
+    - self-referral
+    - word of mouth
+    - sporting club
+    - sports club
+    - sport
+    - club
+    - gym
+    - walk-in
+    - walk in
+
+  # RAP / Wibbi clinical-reason fallback — if missing, look for these terms
+  # in the patient's treatment notes. Match = N/A (not fail).
+  clinical_fallback_keywords:
+    - awaiting imaging
+    - travelling
+    - travel
+    - casted
+    - cast
+    - splint
+    - hospital
+
+# PPVA — appointment types considered "private" (includes EPC)
+ppva:
+  private_name_patterns:
+    - '(?i)private'
+    - '(?i)EPC'
+  excluded_name_patterns:
+    - '(?i)ndis'
+    - '(?i)dva'
+    - '(?i)workcover'
+    - '(?i)tac'
+
+# Notes completion window (hours)
+notes_completion_window_hours: 24
+
+# Punctuality buckets (minutes late, upper bound inclusive)
+punctuality:
+  buckets:
+    - name: '0-5'
+      max_minutes: 5
+    - name: '6-10'
+      max_minutes: 10
+    - name: '11-14'
+      max_minutes: 14
+    - name: '15+'
+      max_minutes: null     # open-ended
+  # rubric score denominator = total; numerator = sum of 0-5 + 6-10 + 11-14
+  rubric_score_formula: 'within_15_min_percent'
+  leave_status_values:
+    - off
+    - leave
+    - sick
+    - na
+
+# Matrix zones (percentage of max band = score/10)
+matrix:
+  zones:
+    red:     { clin_max: 0.50, nonclin_max: 0.50 }
+    orange:  { clin_min: 0.50, nonclin_max: 0.50 }
+    blue:    { clin_max: 0.50, nonclin_min: 0.50 }
+    gold:    { clin_min: 0.75, nonclin_min: 0.75 }
+    # Green = anything that doesn't match the others (the "expected" middle band)
+
+# New-patient detection
+# Signal 1 (always on): patients whose attended appt type matches an
+# "Initial / New Patient / Assessment" name pattern.
+# Signal 2 (optional, slow): scan /patients for those created in range.
+# Turn on only when you need DVA/NDIS/TAC/NSW WorkCover first-timers
+# counted — they don't have dedicated Initial appt types, so Signal 1
+# misses them. Adds ~20-50 API calls per metric refresh depending on
+# clinic size.
+new_patients:
+  scan_patients: false
+  scan_patients_max_pages: 20   # hard cap = 2000 records checked
+
+# Rate limiting
+cliniko:
+  base_url_template: 'https://api.{shard}.cliniko.com/v1'
+  requests_per_minute: 180    # Leave headroom under the 200/min cap
+  page_size: 100
+  cache_ttl_seconds: 1800     # 30 min Streamlit cache — first load is slow,
+                               # subsequent loads in the same session are instant
