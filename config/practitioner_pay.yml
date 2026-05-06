@@ -1,0 +1,233 @@
+# Practitioner pay config for the Commission Calculator (v26.10).
+#
+# Each practitioner has:
+#   - hourly_rate            ex-super, ex-GST AUD/hour
+#   - commission_pct         e.g. 0.40 for 40%
+#   - hours_per_day          weekly schedule, used to compute monthly hours
+#   - recurring_deductions   monthly hour deductions (catch-ups, leadership, etc)
+#   - aliases                optional Cliniko-name variants for matching
+#
+# Per-month manual adjustments (GP meetings, ad-hoc mentoring) are entered
+# in the Commission tab UI, not here. They subtract from hours just like
+# recurring_deductions but vary month-to-month.
+
+# Super (SG) rate for the bonus back-out: bonus_pre_super = gap / (1+super)
+# Australia's SG steps from 12.0% to 12.5% on 1 July 2026.
+super_rate_default: 0.12
+super_rate_changes:
+  - effective_from: 2026-07-01
+    rate: 0.125
+
+# These deductions apply to anyone who doesn't override them per-practitioner.
+# Currently Patrick / Alesha / Maya / Chris / Mitch all attend; Chris is 2hrs
+# (overridden below). Others omit them by setting their own block to {}.
+default_recurring_deductions:
+  "Staff catch-ups":   4.0   # hours/month
+  "Leadership meeting": 1.0  # hours/month
+
+practitioners:
+
+  "Patrick Stow":
+    aliases: ["Paddy"]
+    hourly_rate: 52.50
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    0
+      Tuesday:   9.0
+      Wednesday: 9.0
+      Thursday:  9.0
+      Friday:    8.0
+      Saturday:  0
+      Sunday:    0
+    # uses default_recurring_deductions
+
+  "Alesha Harmer":
+    hourly_rate: 52.50
+    commission_pct: 0.42
+    hours_per_day:
+      Monday:    9.5
+      Tuesday:   9.5
+      Wednesday: 0
+      Thursday:  9.0
+      Friday:    7.0
+      Saturday:  0
+      Sunday:    0
+    # uses default_recurring_deductions
+
+  "Maya Davis":
+    hourly_rate: 52.50
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.0
+      Tuesday:   9.0
+      Wednesday: 9.0
+      Thursday:  8.0
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    # uses default_recurring_deductions
+
+  "Chris Oberson":
+    aliases: ["Obi"]
+    hourly_rate: 52.50
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    8.0
+      Tuesday:   8.0
+      Wednesday: 8.0
+      Thursday:  9.0
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions:
+      "Staff catch-ups":    2.0  # Chris is 2hrs not 4
+      "Leadership meeting": 1.0
+
+  "Victory Hughes":
+    aliases: ["Tori"]
+    hourly_rate: 45.00
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.5
+      Tuesday:   9.0
+      Wednesday: 9.0
+      Thursday:  5.5
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Dave Rossiter":
+    hourly_rate: 55.00
+    commission_pct: 0.42
+    hours_per_day:
+      Monday:    8.0
+      Tuesday:   9.0
+      Wednesday: 8.0
+      Thursday:  6.5
+      Friday:    6.5
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Jackson Casey":
+    aliases: ["Jacko"]
+    hourly_rate: 47.50
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    4.0
+      Tuesday:   8.0
+      Wednesday: 9.0
+      Thursday:  8.0
+      Friday:    7.5
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Jayde Black":
+    hourly_rate: 45.00
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.0
+      Tuesday:   9.0
+      Wednesday: 0
+      Thursday:  9.0
+      Friday:    7.0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Mitch Wadley":
+    hourly_rate: 47.50
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.0
+      Tuesday:   9.0
+      Wednesday: 7.0
+      Thursday:  8.0
+      Friday:    5.0
+      Saturday:  0
+      Sunday:    0
+    # Matt: "1 hr for mentoring weekly". Treated as flat 4 hrs/month for now.
+    # Edge cases (5-week month) under-deduct by 1hr — adjust via Manual
+    # Adjustment field that month if it matters.
+    recurring_deductions:
+      "Mentoring": 4.0
+
+  "Sarah Hamilton":
+    hourly_rate: 47.50
+    commission_pct: 0.42
+    hours_per_day:
+      Monday:    0    # Matt left this blank — assumed 0
+      Tuesday:   0
+      Wednesday: 7.0
+      Thursday:  0
+      Friday:    7.0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Tara Child":
+    hourly_rate: 45.00
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.0
+      Tuesday:   6.0
+      Wednesday: 8.0
+      Thursday:  8.0
+      Friday:    7.0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Jess Lewington":
+    hourly_rate: 55.00
+    commission_pct: 0.42
+    hours_per_day:
+      Monday:    0
+      Tuesday:   7.0
+      Wednesday: 0
+      Thursday:  0
+      Friday:    7.0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Ben Griffiths":
+    hourly_rate: 40.00
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.0
+      Tuesday:   8.0
+      Wednesday: 8.0
+      Thursday:  5.0
+      Friday:    8.0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Sam King":
+    hourly_rate: 40.00
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.0
+      Tuesday:   8.0
+      Wednesday: 9.0
+      Thursday:  8.0
+      Friday:    4.0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Seb Turner":
+    hourly_rate: 40.00
+    commission_pct: 0.40
+    hours_per_day:
+      Monday:    9.0
+      Tuesday:   7.0
+      Wednesday: 9.0
+      Thursday:  8.0
+      Friday:    5.0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
