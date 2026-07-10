@@ -1304,25 +1304,87 @@ def injuries_tab(filters: dict) -> None:
 
     st.caption(f"Range: **{dr.label()}**")
 
-    with st.spinner("Pulling treatment notes from Cliniko…"):
+    # v27.1 — Multi-org fetch. Read the sidebar's clinic selection and
+    # loop over selected orgs (default: all configured orgs). Each
+    # returned row is tagged with organization_key + organization_name
+    # so the per-clinic breakdown below can compare across sites.
+    from dashboard.cliniko import (
+        load_organizations, get_client_for_org, get_configured_orgs,
+    )
+    from dashboard.reference_data import (
+        load_appointment_types, load_businesses,
+    )
+    selected_org_keys = filters.get("selected_org_keys") or [
+        o.key for o in get_configured_orgs()
+    ]
+    all_orgs_map = {o.key: o for o in load_organizations()}
+    orgs_to_fetch = [all_orgs_map[k] for k in selected_org_keys if k in all_orgs_map]
+
+    if not orgs_to_fetch:
+        st.warning(
+            "No Cliniko orgs configured with API keys — check Streamlit "
+            "Cloud → Secrets."
+        )
+        return
+
+    # Show per-org progress since a multi-org fetch may take several
+    # minutes.
+    breakdowns: list[pd.DataFrame] = []
+    org_businesses_maps: dict[str, dict[str, str]] = {}
+    practitioners = filters.get("practitioners")
+
+    progress = st.progress(0.0, text="Starting…")
+    for i, org in enumerate(orgs_to_fetch):
+        progress.progress(
+            i / max(len(orgs_to_fetch), 1),
+            text=f"Pulling from {org.display_name} ({i+1}/{len(orgs_to_fetch)})…",
+        )
         try:
-            client = get_client()
-            appt_types = cached_appointment_types()
-            businesses = cached_businesses()
-            practitioners = filters.get("practitioners")
-            appts = fetch_appointments(
-                client, dr,
-                business_ids=list(filters.get("business_ids") or []) or None,
-                practitioner_ids=list(filters.get("practitioner_ids") or []) or None,
+            org_client = get_client_for_org(org)
+            org_appt_types = load_appointment_types(org_client)
+            org_businesses = load_businesses(org_client)
+            org_appts = fetch_appointments(
+                org_client, dr,
+                business_ids=(list(filters.get("business_ids") or [])
+                                if org.is_default else None) or None,
+                practitioner_ids=(list(filters.get("practitioner_ids") or [])
+                                    if org.is_default else None) or None,
             )
-            breakdown = injuries_breakdown(
-                client, appts, dr,
-                appointment_types=appt_types,
-                practitioners=practitioners,
+            org_breakdown = injuries_breakdown(
+                org_client, org_appts, dr,
+                appointment_types=org_appt_types,
+                practitioners=practitioners if org.is_default else None,
             )
         except Exception as e:
-            st.error(f"Couldn't load injury data: {e}")
-            return
+            st.warning(f"⚠️ Skipped {org.display_name}: {e}")
+            continue
+        if org_breakdown is None or org_breakdown.empty:
+            continue
+        org_breakdown = org_breakdown.copy()
+        org_breakdown["organization_key"] = org.key
+        org_breakdown["organization_name"] = org.display_name
+        breakdowns.append(org_breakdown)
+        # Cache the org's business id → name so the per-business breakdown
+        # further down can label rows even for orgs where businesses
+        # aren't in cached_businesses() (which is default-org only).
+        if not org_businesses.empty:
+            org_businesses_maps[org.key] = dict(
+                zip(org_businesses["id"].astype(str), org_businesses["label"])
+            )
+    progress.empty()
+
+    if not breakdowns:
+        breakdown = pd.DataFrame()
+    else:
+        breakdown = pd.concat(breakdowns, ignore_index=True)
+
+    # Default-org business list — used by existing per-business breakdown
+    # when a single default-org clinic is selected. When multi-org is on,
+    # we prefer the org-specific maps built above.
+    try:
+        businesses = cached_businesses()
+    except Exception:
+        businesses = pd.DataFrame()
 
     if breakdown.empty:
         st.info(
@@ -1346,9 +1408,47 @@ def injuries_tab(filters: dict) -> None:
         st.bar_chart(totals.set_index("category")["count"])
         st.dataframe(totals, hide_index=True, width="stretch")
 
-    # 2. Per-clinic breakdown
-    st.markdown("### By clinic")
-    by_clinic = by_category_and_clinic(breakdown, businesses)
+    # v27.1 — new "By region" view when more than one org's data is
+    # in scope. Compares categories across Cliniko orgs so patterns
+    # per site are visible.
+    if breakdown["organization_key"].nunique() > 1:
+        st.markdown("### By region (Cliniko org)")
+        st.caption(
+            "Category × region — see where each type of injury is "
+            "concentrated across the group."
+        )
+        region_pivot = (breakdown.pivot_table(
+            index="category", columns="organization_name",
+            values="appointment_id", aggfunc="count", fill_value=0,
+        ))
+        region_pivot["Total"] = region_pivot.sum(axis=1)
+        region_pivot = region_pivot.sort_values("Total", ascending=False)
+        st.dataframe(region_pivot, width="stretch")
+
+    # 2. Per-clinic breakdown (per Cliniko business_id within each org).
+    # In multi-org mode we prefix each business with its org name so
+    # the row labels are unambiguous ("Mudgeeraba: Robina" vs "AW: Albury").
+    st.markdown("### By clinic (business)")
+    # Build a combined businesses frame that spans every fetched org.
+    # ``by_category_and_clinic`` reads the ``name`` column, so we set
+    # both ``name`` and ``label`` for compatibility.
+    if org_businesses_maps:
+        rows = []
+        multi = len(org_businesses_maps) > 1
+        for org_key, biz_map in org_businesses_maps.items():
+            org_name = (all_orgs_map[org_key].display_name
+                         if org_key in all_orgs_map else org_key)
+            for bid, label in biz_map.items():
+                pref_label = f"{org_name}: {label}" if multi else label
+                rows.append({
+                    "id": str(bid),
+                    "name": pref_label,
+                    "label": pref_label,
+                })
+        combined_biz = pd.DataFrame(rows)
+    else:
+        combined_biz = businesses
+    by_clinic = by_category_and_clinic(breakdown, combined_biz)
     if not by_clinic.empty:
         st.dataframe(by_clinic, width="stretch")
 
