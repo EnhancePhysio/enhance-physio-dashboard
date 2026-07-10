@@ -27,7 +27,7 @@ cliniko_organizations:
     name: Melbourne (Mulgrave)
     display_name: Enhance Physio Mulgrave
     api_key_env: CLINIKO_API_KEY_MULGRAVE
-    shard: au1
+    shard: au4                                # Cliniko shard is per-org — Mulgrave lives on au4
 
 # v26.11.2 — Commission calculator item filtering. Cliniko often bills
 # non-service fees (DNA, room hire, products) as line items on a regular
