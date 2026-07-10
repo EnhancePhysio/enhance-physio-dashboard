@@ -1196,12 +1196,43 @@ def main() -> None:
 # -------------------------------------------------------------------
 # Tab: Injuries (v26.8)
 # -------------------------------------------------------------------
+def _lazy_gate(tab_name: str, load_button_label: str,
+                info_line: str) -> bool:
+    """v26.11.5 — Lazy-load gate for heavy tabs.
+
+    Returns True if the tab is authorised to run its heavy fetch.
+    Returns False (after rendering a Load button) otherwise. Streamlit
+    executes every tab function on every rerun; without a gate, the
+    Commission tab has to wait for Overview + Clinical Review + Injuries
+    to finish their fetches even when the user just wants Commission.
+
+    Once loaded in a session, the tab stays loaded; the Force Refresh
+    button (per-tab) can un-set it if needed.
+    """
+    key = f"loaded_{tab_name}"
+    if st.session_state.get(key):
+        return True
+    st.info(info_line)
+    if st.button(load_button_label, key=f"load_{tab_name}", type="primary"):
+        st.session_state[key] = True
+        st.rerun()
+    return False
+
+
 def injuries_tab(filters: dict) -> None:
     """Injury-area analytics from initial-consult treatment notes.
 
     Shows: bar chart of total counts per category, per-clinic
     breakdown table, monthly trend, optional per-practitioner drill.
     """
+    st.subheader("🩻 Injuries seen — by area")
+    if not _lazy_gate(
+        "injuries",
+        "Load Injuries data",
+        "Click below to pull treatment notes for the selected range "
+        "(~30–60s first time, then cached).",
+    ):
+        return
     from dashboard.injuries import (
         injuries_breakdown, total_by_category,
         by_category_and_clinic, by_category_monthly,
@@ -1210,7 +1241,6 @@ def injuries_tab(filters: dict) -> None:
     from dashboard.metrics import fetch_appointments
     from dashboard.date_ranges import resolve_preset
 
-    st.subheader("🩻 Injuries seen — by area")
     st.caption(
         "Pulled from the **Area of Injury** checkbox on initial-consult "
         "treatment notes. When checkboxes weren't ticked, falls back to "
@@ -1353,7 +1383,7 @@ def _cached_clinical_review(_schema_version: str = ""):
     # Disk cache fast path — 12h TTL
     if cache_file.exists():
         age_seconds = time.time() - cache_file.stat().st_mtime
-        if age_seconds < 12 * 3600:
+        if age_seconds < 48 * 3600:
             try:
                 with open(cache_file, "rb") as f:
                     return pickle.load(f)
@@ -1403,10 +1433,17 @@ def clinical_review_tab(filters: dict) -> None:
     rules work). Practitioner filter still applies though, so a
     senior physio can review only their own caseload.
     """
+    st.subheader("🩺 Clinical Review queue")
+    if not _lazy_gate(
+        "clinical_review",
+        "Load Clinical Review",
+        "Click below to pull 12 months of patient histories from Cliniko "
+        "(~2–3 min first time, then cached for 48h).",
+    ):
+        return
     from dashboard.clinical_review import attach_practitioner_names
     from dashboard import __version__ as _v
 
-    st.subheader("🩺 Clinical Review queue")
     st.caption(
         "Patients still being seen but past their funding bucket's "
         "threshold (potential over-servicing — flag for clinical review, "
@@ -1593,7 +1630,7 @@ def clinical_review_tab(filters: dict) -> None:
 # basically immutable (the month's already closed in payroll) so there's
 # no value in re-fetching every 30 min. Force-refresh button below if
 # you've just generated new invoices.
-@st.cache_data(ttl=12 * 3600, show_spinner=False)
+@st.cache_data(ttl=48 * 3600, show_spinner=False)
 def _cached_commission(year: int, month: int, _schema_version: str = ""):
     """Cache around the heavy invoice fetch. Manual adjustments are NOT
     cached — they're applied after the cache layer.
@@ -1617,7 +1654,7 @@ def _cached_commission(year: int, month: int, _schema_version: str = ""):
     # --- Disk-cache fast path: <12 hours old → load from disk ---
     if cache_file.exists():
         age_seconds = time.time() - cache_file.stat().st_mtime
-        if age_seconds < 12 * 3600:
+        if age_seconds < 48 * 3600:
             try:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     blob = json.load(f)
@@ -1658,6 +1695,9 @@ def _clear_commission_cache(year: int, month: int) -> None:
     except Exception:
         pass
     _cached_commission.clear()
+    # v26.11.5 — keep the lazy-load flag set so we immediately re-fetch
+    # after refresh instead of asking the user to click Load again.
+    st.session_state["loaded_commission"] = True
 
 
 def commission_tab(filters: dict) -> None:
@@ -1671,13 +1711,23 @@ def commission_tab(filters: dict) -> None:
     import calendar as _cal
     from datetime import date as _date
     import os
+
+    st.subheader("💰 Commission Calculator")
+    # Lazy gate — no fetches until user clicks Load. Cache also survives
+    # this gate (result is cached to disk), so subsequent months of the
+    # same session are near-instant.
+    if not _lazy_gate(
+        "commission",
+        "Load Commission",
+        "Click below to pull invoices and appointments from Cliniko for "
+        "the selected month (~30-60s first time, then cached for 48h).",
+    ):
+        return
     from dashboard.commission import (
         compute_commission_for_practitioner, hours_for_month, dow_occurrences,
     )
     from dashboard.config import _ensure_env
     from dashboard import __version__ as _v
-
-    st.subheader("💰 Commission Calculator")
 
     # ---- Password gate (v26.11.1) ----
     _ensure_env()
@@ -1790,6 +1840,9 @@ def commission_tab(filters: dict) -> None:
     # one practitioner doesn't blow away the others.
     adj_key_prefix = f"commission_manual_adj_{year}_{month}"
 
+    # v26.11.3 — additional session-state key for paid-hours overrides
+    override_key_prefix = f"commission_paid_hours_override_{year}_{month}"
+
     # Build initial table
     rows: list[dict] = []
     cliniko_id_warnings: list[str] = []
@@ -1799,16 +1852,20 @@ def commission_tab(filters: dict) -> None:
             cliniko_id_warnings.append(prac.name)
         revenue = float(revenue_map.get(cid or "", 0.0))
         manual_h = float(st.session_state.get(f"{adj_key_prefix}_{prac.name}", 0.0))
+        override_raw = st.session_state.get(f"{override_key_prefix}_{prac.name}", 0.0)
+        override_val = float(override_raw) if override_raw and float(override_raw) > 0 else None
         result = compute_commission_for_practitioner(
             prac, year, month,
             revenue=revenue,
             super_rate=super_rate,
             manual_adjustment_hours=manual_h,
+            paid_hours_override=override_val,
             cliniko_practitioner_id=cid,
         )
         row = result.as_row()
-        # Insert the editable manual adj column up front for clarity
+        # Editable inputs come first
         row["Manual adj (hrs)"] = manual_h
+        row["Paid hours (override)"] = float(override_raw or 0.0)
         rows.append(row)
 
     if cliniko_id_warnings:
@@ -1823,7 +1880,8 @@ def commission_tab(filters: dict) -> None:
     # Reorder columns so the editable one sits next to deductions
     col_order = [
         "Practitioner", "Base hours", "Deductions (hrs)", "Manual adj (hrs)",
-        "Paid hours", "Rate ($/h)", "Base pay (pre-super)", "Super on base",
+        "Paid hours (override)", "Paid hours",
+        "Rate ($/h)", "Base pay (pre-super)", "Super on base",
         "Base cost (incl super)", "Revenue invoiced", "Commission %",
         "Target total cost", "Bonus (pre-super, enter in Xero)",
         "Total clinic cost",
@@ -1839,6 +1897,13 @@ def commission_tab(filters: dict) -> None:
                 "Manual adj (hrs)",
                 help="Extra hours to deduct this month — GP meetings, "
                       "ad-hoc mentoring, sick leave (after-fact), etc.",
+                step=0.5, min_value=0.0,
+            ),
+            "Paid hours (override)": st.column_config.NumberColumn(
+                "Paid hours (override)",
+                help="Enter ACTUAL paid hours from Xero timesheet. "
+                      "Overrides the theoretical schedule + deductions. "
+                      "Leave at 0 to use the computed value.",
                 step=0.5, min_value=0.0,
             ),
             "Practitioner":             st.column_config.TextColumn(disabled=True),
@@ -1859,8 +1924,8 @@ def commission_tab(filters: dict) -> None:
         key=f"commission_editor_{year}_{month}",
     )
 
-    # Persist edited Manual adj values back into session_state and re-run
-    # if anything changed
+    # Persist edited Manual adj + Paid hours override back into
+    # session_state and re-run if anything changed
     rerun = False
     for _, r in edited.iterrows():
         name = r["Practitioner"]
@@ -1868,6 +1933,11 @@ def commission_tab(filters: dict) -> None:
         ss_key = f"{adj_key_prefix}_{name}"
         if abs(new_adj - float(st.session_state.get(ss_key, 0.0))) > 1e-9:
             st.session_state[ss_key] = new_adj
+            rerun = True
+        new_override = float(r.get("Paid hours (override)") or 0.0)
+        ov_key = f"{override_key_prefix}_{name}"
+        if abs(new_override - float(st.session_state.get(ov_key, 0.0))) > 1e-9:
+            st.session_state[ov_key] = new_override
             rerun = True
     if rerun:
         st.rerun()
