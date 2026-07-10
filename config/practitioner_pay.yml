@@ -25,10 +25,17 @@ default_recurring_deductions:
   "Staff catch-ups":   4.0   # hours/month
   "Leadership meeting": 1.0  # hours/month
 
+# v26.11.4 — managers (Patrick, Maya, Alesha) get an additional
+# "Quarterly catch-up with Matt" averaged to 0.67hrs/month across
+# the year. Non-managers (Chris + everyone else) don't.
+manager_extra_recurring_deductions:
+  "Quarterly catch-up (Matt, avg)": 0.67
+
 practitioners:
 
   "Patrick Stow":
     aliases: ["Paddy"]
+    is_manager: true                # gets Quarterly catch-up (Matt, avg) 0.67hrs/mo
     hourly_rate: 52.50
     commission_pct: 0.40
     hours_per_day:
@@ -39,9 +46,13 @@ practitioners:
       Friday:    8.0
       Saturday:  0
       Sunday:    0
-    # uses default_recurring_deductions
+    # v26.11.5 — leadership meeting removed to match Matt's stated model
+    # (35 hrs/wk in schedule + 4 staff catch-ups + 0.67 quarterly = clean).
+    recurring_deductions:
+      "Staff catch-ups": 4.0
 
   "Alesha Harmer":
+    is_manager: true                # gets Quarterly catch-up (Matt, avg) 0.67hrs/mo
     hourly_rate: 52.50
     commission_pct: 0.42
     hours_per_day:
@@ -52,9 +63,12 @@ practitioners:
       Friday:    7.0
       Saturday:  0
       Sunday:    0
-    # uses default_recurring_deductions
+    # v26.11.5 — leadership meeting removed (already implicit in 35hrs/wk).
+    recurring_deductions:
+      "Staff catch-ups": 4.0
 
   "Maya Davis":
+    is_manager: true                # gets Quarterly catch-up (Matt, avg) 0.67hrs/mo
     hourly_rate: 52.50
     commission_pct: 0.40
     hours_per_day:
@@ -65,7 +79,9 @@ practitioners:
       Friday:    0
       Saturday:  0
       Sunday:    0
-    # uses default_recurring_deductions
+    # v26.11.5 — leadership meeting removed (already implicit in 35hrs/wk).
+    recurring_deductions:
+      "Staff catch-ups": 4.0
 
   "Chris Oberson":
     aliases: ["Obi"]
