@@ -136,6 +136,36 @@ def sidebar_filters() -> dict:
         custom_start = st.sidebar.date_input("Start", today - timedelta(days=30))
         custom_end = st.sidebar.date_input("End", today)
 
+    # v27.0 — Multi-org clinic selector. Sits ABOVE the per-org business
+    # multiselect (which is Cliniko's own concept of "business" within
+    # one org). Chosen clinic filters ALL tabs.
+    from dashboard.cliniko import (
+        get_configured_orgs, load_organizations,
+    )
+    all_orgs = load_organizations()
+    configured_orgs = get_configured_orgs()
+    if len(all_orgs) > 1:
+        # Show one option per org PLUS an "All clinics" aggregate.
+        # Only include orgs whose API key is actually set.
+        options = ["All clinics"] + [o.name for o in configured_orgs]
+        missing = [o.name for o in all_orgs if not o.api_key]
+        selected_clinic = st.sidebar.selectbox(
+            "Clinic (multi-org)", options,
+            index=0,
+            help="Filter dashboard to one clinic, or aggregate all.",
+        )
+        if missing:
+            st.sidebar.caption(
+                f"⚠️ Missing API keys for: {', '.join(missing)}. "
+                "Add secrets in Streamlit Cloud to enable those orgs."
+            )
+        # Resolve to org keys
+        from dashboard.multi_org import resolve_clinic_filter
+        selected_org_keys = resolve_clinic_filter(selected_clinic)
+    else:
+        selected_clinic = "All clinics"
+        selected_org_keys = [o.key for o in configured_orgs]
+
     try:
         biz = cached_businesses()
         practs = cached_practitioners()
@@ -185,6 +215,9 @@ def sidebar_filters() -> dict:
         "practitioner_ids": prac_ids,
         "businesses": biz,
         "practitioners": practs,
+        # v27.0 — multi-org filter
+        "clinic_selection": selected_clinic,
+        "selected_org_keys": selected_org_keys,
     }
 
 
