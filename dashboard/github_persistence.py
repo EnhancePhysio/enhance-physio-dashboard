@@ -216,7 +216,10 @@ def hydrate_directory_from_github(local_dir: Path) -> tuple[int, str]:
         if entry.get("type") != "file":
             continue
         name = entry.get("name", "")
-        if not name.endswith(".csv"):
+        # v27.0.1 — also pull JSON files (snapshot format) and audit-cache
+        # pickles, so hydration works for every data folder we manage.
+        if not (name.endswith(".csv") or name.endswith(".json")
+                or name.endswith(".pkl")):
             continue
         # Download the raw content
         download_url = entry.get("download_url")
@@ -256,7 +259,9 @@ def hydrate_all() -> dict[str, str]:
     per session startup (wrapped in @st.cache_data for rate-limit safety).
     Returns a dict of dir_name -> status message."""
     results: dict[str, str] = {}
-    for name in ("punctuality", "nps", "audit_cache", "recalls"):
+    # v27.0.1 — snapshots added so historical monthly metrics survive
+    # Streamlit Cloud redeploys (they're pushed to GitHub on create).
+    for name in ("punctuality", "nps", "audit_cache", "recalls", "snapshots"):
         path = DATA_DIR / name
         _, msg = hydrate_directory_from_github(path)
         results[name] = msg

@@ -1205,6 +1205,18 @@ _RECALL_BOOKMARKLET_URL = (
 def main() -> None:
     _require_password()
     st.title("Enhance Physio — Performance Dashboard")
+
+    # v27.0.1 — Auto-snapshot check. First visitor of the 1st of the
+    # month triggers a snapshot of the prior month. Runs once per app
+    # instance per month; subsequent visits are no-ops.
+    try:
+        from dashboard.snapshots import maybe_auto_snapshot
+        _did, _msg = maybe_auto_snapshot()
+        if _did:
+            st.toast(f"📸 {_msg}", icon="📸")
+    except Exception:
+        pass
+
     filters = sidebar_filters()
 
     (tab_overview, tab_manual, tab_injuries, tab_review,
@@ -1879,27 +1891,55 @@ def commission_tab(filters: dict) -> None:
     # Build initial table
     rows: list[dict] = []
     cliniko_id_warnings: list[str] = []
+    compute_errors: list[tuple[str, str]] = []
     for prac in pay_config.practitioners:
         cid = id_map.get(prac.name)
         if cid is None:
             cliniko_id_warnings.append(prac.name)
-        revenue = float(revenue_map.get(cid or "", 0.0))
-        manual_h = float(st.session_state.get(f"{adj_key_prefix}_{prac.name}", 0.0))
-        override_raw = st.session_state.get(f"{override_key_prefix}_{prac.name}", 0.0)
-        override_val = float(override_raw) if override_raw and float(override_raw) > 0 else None
-        result = compute_commission_for_practitioner(
-            prac, year, month,
-            revenue=revenue,
-            super_rate=super_rate,
-            manual_adjustment_hours=manual_h,
-            paid_hours_override=override_val,
-            cliniko_practitioner_id=cid,
-        )
+        # v27.0 — defensive coercion. New-clinic practitioners can have
+        # unset fields that reach compute_commission as unexpected types
+        # and crash the whole tab. Coerce every input to a safe float.
+        try:
+            revenue = float(revenue_map.get(cid or "", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            revenue = 0.0
+        try:
+            manual_h_raw = st.session_state.get(f"{adj_key_prefix}_{prac.name}", 0.0)
+            manual_h = float(manual_h_raw) if manual_h_raw is not None else 0.0
+        except (TypeError, ValueError):
+            manual_h = 0.0
+        try:
+            override_raw = st.session_state.get(f"{override_key_prefix}_{prac.name}", 0.0)
+            override_num = float(override_raw) if override_raw is not None else 0.0
+            override_val = override_num if override_num > 0 else None
+        except (TypeError, ValueError):
+            override_raw = 0.0
+            override_val = None
+        try:
+            result = compute_commission_for_practitioner(
+                prac, year, month,
+                revenue=revenue,
+                super_rate=super_rate,
+                manual_adjustment_hours=manual_h,
+                paid_hours_override=override_val,
+                cliniko_practitioner_id=cid,
+            )
+        except Exception as _e:
+            compute_errors.append((prac.name, f"{type(_e).__name__}: {_e}"))
+            continue
         row = result.as_row()
         # Editable inputs come first
         row["Manual adj (hrs)"] = manual_h
-        row["Paid hours (override)"] = float(override_raw or 0.0)
+        try:
+            row["Paid hours (override)"] = float(override_raw) if override_raw is not None else 0.0
+        except (TypeError, ValueError):
+            row["Paid hours (override)"] = 0.0
         rows.append(row)
+
+    if compute_errors:
+        with st.expander(f"⚠️ {len(compute_errors)} practitioner(s) skipped due to compute errors", expanded=True):
+            for name, err in compute_errors:
+                st.write(f"**{name}** — {err}")
 
     if cliniko_id_warnings:
         st.warning(
@@ -2065,10 +2105,83 @@ def commission_tab(filters: dict) -> None:
                 )
 
 
+def _render_snapshot_admin() -> None:
+    """v27.0.1 — Snapshot administration: manual trigger + history."""
+    import calendar as _cal
+    from datetime import date as _date
+    from dashboard.snapshots import (
+        create_snapshot, list_snapshots, maybe_auto_snapshot, snapshot_path,
+    )
+
+    st.markdown("**Auto-trigger status**")
+    st.caption(
+        "Snapshots run automatically the first time anyone opens the "
+        "dashboard on/after the 1st of each month. Once captured, "
+        "metrics for that month are stored forever — future dashboards "
+        "read from the snapshot instead of re-fetching Cliniko."
+    )
+
+    # Manual snapshot for any month
+    today = _date.today()
+    if today.month == 1:
+        default_y, default_m = today.year - 1, 12
+    else:
+        default_y, default_m = today.year, today.month - 1
+
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c1:
+        sn_year = st.selectbox("Year", list(range(today.year - 2, today.year + 1)),
+                                 index=[today.year - 2, today.year - 1, today.year].index(default_y),
+                                 key="snapshot_year")
+    with c2:
+        sn_month = st.selectbox("Month", list(range(1, 13)),
+                                  format_func=lambda m: _cal.month_name[m],
+                                  index=default_m - 1, key="snapshot_month")
+    with c3:
+        st.markdown("&nbsp;")
+        if st.button("📸 Snapshot now", key="snapshot_manual", type="primary"):
+            with st.spinner(f"Snapshotting {_cal.month_name[sn_month]} {sn_year} across all orgs…"):
+                try:
+                    snap = create_snapshot(int(sn_year), int(sn_month))
+                    n_orgs = len(snap.get("organizations", {}))
+                    st.success(f"Snapshot saved: {n_orgs} org(s) captured.")
+                except Exception as e:
+                    st.error(f"Snapshot failed: {type(e).__name__}: {e}")
+
+    # History
+    st.markdown("**Snapshot history**")
+    snaps = list_snapshots()
+    if not snaps:
+        st.info(
+            "No snapshots yet. One will be created automatically on the "
+            "1st of next month, or click 'Snapshot now' above to capture "
+            "a specific month manually."
+        )
+    else:
+        hist_rows = [{
+            "Year": s["year"],
+            "Month": _cal.month_name[s["month"]],
+            "Orgs captured": ", ".join(s["orgs"]),
+            "Created (UTC)": s["created_at"],
+        } for s in snaps]
+        st.dataframe(pd.DataFrame(hist_rows), hide_index=True, width="stretch")
+        st.caption(
+            f"Snapshots stored in `data/snapshots/` and pushed to GitHub "
+            f"for permanence. {len(snaps)} snapshot(s) on disk."
+        )
+
+
 def diagnostics_tab(filters: dict) -> None:
     """Temporary debug tab: shows raw Cliniko responses so we can spot
     field-name mismatches. Safe to ignore once numbers look right."""
     from dashboard.cliniko import starts_at_range_params
+
+    # v27.0.1 — Monthly snapshot admin controls at the top so managers
+    # can trigger a snapshot on demand or see snapshot history.
+    with st.expander("📸 Monthly snapshots (long-term storage)",
+                       expanded=False):
+        _render_snapshot_admin()
+        st.markdown("---")
 
     st.subheader("🔧 Cliniko API diagnostics")
     st.caption(
