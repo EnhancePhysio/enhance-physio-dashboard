@@ -1626,6 +1626,31 @@ def clinical_review_tab(filters: dict) -> None:
         if not under_df.empty:
             under_df = under_df[under_df["practitioner_id"].astype(str).isin(pf)]
 
+    # v27.2 — Filter out patients already marked reviewed (within the
+    # 90-day auto-unhide window). Load hidden set once for both frames.
+    from dashboard.clinical_review_reviewed import (
+        hidden_patient_ids, mark_reviewed, unmark_reviewed,
+    )
+    _hidden = hidden_patient_ids()
+    _n_hidden_over = 0
+    _n_hidden_under = 0
+    if _hidden:
+        if not over_df.empty:
+            mask = ~over_df["patient_id"].astype(str).isin(_hidden)
+            _n_hidden_over = int((~mask).sum())
+            over_df = over_df[mask]
+        if not under_df.empty:
+            mask = ~under_df["patient_id"].astype(str).isin(_hidden)
+            _n_hidden_under = int((~mask).sum())
+            under_df = under_df[mask]
+    if _n_hidden_over or _n_hidden_under:
+        st.caption(
+            f"✅ {_n_hidden_over + _n_hidden_under} patient(s) hidden "
+            f"(marked reviewed within the last "
+            f"{load_settings().get('clinical_review', {}).get('reviewed_auto_unhide_days', 90)} days). "
+            f"Use the 'Un-hide reviewed patients' expander below to see them."
+        )
+
     # ----- Over-servicing section -----
     st.markdown("### Over-servicing — past threshold")
     if over_df.empty:
@@ -1640,13 +1665,14 @@ def clinical_review_tab(filters: dict) -> None:
         for i, (bucket, count) in enumerate(bucket_counts.items(), start=1):
             cols[i].metric(bucket, int(count))
 
-        # Display table
-        display_cols = ["patient", "bucket", "appts_count",
+        # Display table with tickable "Reviewed" column (v27.2).
+        display_cols = ["patient_id", "patient", "bucket", "appts_count",
                           "days_since_initial", "initial_date",
                           "last_appt_date", "has_future_appt",
                           "practitioner", "flag_reason", "cliniko_url"]
         display = over_df[[c for c in display_cols if c in over_df.columns]].rename(
             columns={
+                "patient_id": "_pid",  # hidden, used for the reviewed callback
                 "patient": "Patient",
                 "bucket": "Bucket",
                 "appts_count": "Appts",
@@ -1659,16 +1685,40 @@ def clinical_review_tab(filters: dict) -> None:
                 "cliniko_url": "Cliniko",
             }
         )
-        st.dataframe(
+        # Reviewed column — starts False for every row. When user ticks
+        # one, the callback below writes it to disk + GitHub.
+        display.insert(0, "Reviewed", False)
+        edited = st.data_editor(
             display,
             hide_index=True,
             width="stretch",
             column_config={
+                "Reviewed": st.column_config.CheckboxColumn(
+                    "✓ Reviewed",
+                    help="Tick to hide this patient from the queue for "
+                          "the next 90 days.",
+                    default=False,
+                ),
+                "_pid": None,
                 "Cliniko": st.column_config.LinkColumn(
                     "Cliniko", display_text="Open ↗"
                 ),
             },
+            disabled=[c for c in display.columns if c not in ("Reviewed",)],
+            key="clinical_review_editor_over",
         )
+        # Detect newly-ticked rows and persist
+        newly_reviewed = edited[edited["Reviewed"] == True]
+        if not newly_reviewed.empty:
+            for _, row in newly_reviewed.iterrows():
+                pid = str(row.get("_pid") or "")
+                if pid:
+                    mark_reviewed(pid)
+            st.success(
+                f"Marked {len(newly_reviewed)} patient(s) as reviewed. "
+                "They'll stay hidden from the queue for 90 days."
+            )
+            st.rerun()
 
     # ----- Under-servicing section -----
     st.markdown("### Under-servicing — initial only, no follow-up")
@@ -1699,9 +1749,41 @@ def clinical_review_tab(filters: dict) -> None:
             },
         )
 
+    # v27.2 — Un-hide reviewed patients
+    if _hidden:
+        with st.expander(
+            f"↩️ Un-hide reviewed patients ({len(_hidden)} currently hidden)",
+            expanded=False,
+        ):
+            st.caption(
+                "Tick a patient below to bring them back into the queue "
+                "(they'll reappear if they still meet the flag criteria)."
+            )
+            from dashboard.clinical_review_reviewed import _load_all, unmark_reviewed
+            all_reviewed = _load_all()
+            hidden_rows = [{
+                "patient_id": pid,
+                "Reviewed on": meta.get("reviewed_at", "").split("T")[0] if isinstance(meta, dict) else "",
+                "Un-hide": False,
+            } for pid, meta in all_reviewed.items() if pid in _hidden]
+            if hidden_rows:
+                unhide_df = pd.DataFrame(hidden_rows)
+                unhide_edited = st.data_editor(
+                    unhide_df, hide_index=True, width="stretch",
+                    disabled=["patient_id", "Reviewed on"],
+                    key="clinical_review_unhide_editor",
+                )
+                to_unhide = unhide_edited[unhide_edited["Un-hide"] == True]
+                if not to_unhide.empty:
+                    for _, row in to_unhide.iterrows():
+                        unmark_reviewed(str(row["patient_id"]))
+                    st.success(f"Un-hid {len(to_unhide)} patient(s).")
+                    st.rerun()
+
     st.caption(
-        "Cache: 30 minutes. Open the **⋮ menu** above and pick **Clear cache** "
-        "if you've just made schedule changes you want reflected immediately."
+        "Cache: 48h on the underlying data pull. Hit **🔄 Force refresh** "
+        "at the top of the tab to re-fetch after schedule changes. "
+        "Reviewed-flag changes take effect immediately."
     )
 
     # --- Diagnostic expander (v26.10.3) -----------------------------
