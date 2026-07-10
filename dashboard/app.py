@@ -1594,8 +1594,9 @@ def clinical_review_tab(filters: dict) -> None:
         "threshold (potential over-servicing — flag for clinical review, "
         "second opinion, or referral), plus initial-only patients who "
         "didn't return (potential under-servicing).  \n"
-        "Active = delivered appt in last 14 days **OR** future booking. "
-        "Thresholds editable in `settings.yml`."
+        "v27.2.1 — Queue shows patients delivered in the last **7 days** "
+        "(weekly cadence). Reviewed patients hide for 90 days. "
+        "Editable in `settings.yml → clinical_review`."
     )
 
     practitioners = filters.get("practitioners")
@@ -1608,7 +1609,7 @@ def clinical_review_tab(filters: dict) -> None:
         _clear_clinical_review_cache()
         st.rerun()
 
-    with st.spinner("Pulling 12 months of appointments from Cliniko (~30s first time)…"):
+    with st.spinner("Finding recent patients + fetching history (~30-60s first time)…"):
         try:
             over_df, under_df = _cached_clinical_review(_schema_version=_v)
         except Exception as e:
