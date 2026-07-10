@@ -143,10 +143,16 @@ utilisation:
 # opinion, internal/external referral, etc.
 # Also flags initial-only patients who never came back (under-servicing).
 clinical_review:
-  # "Still being treated" gate — only flag patients with a delivered
-  # appt in this window, OR a future booking. Stops the queue filling
-  # up with patients who've already finished/churned.
-  active_window_days: 14
+  # v27.2 — "Recently seen" gate. Only flag patients with a delivered
+  # appt in this window (was 14; changed to 7 so the clinical lead's
+  # weekly review shows only what happened in the prior week).
+  active_window_days: 7
+
+  # v27.2 — Once a clinical lead ticks the "Reviewed" checkbox against
+  # a patient, they stay hidden from the queue for this many days.
+  # After 90 days the patient will reappear if they still meet the
+  # criteria (so long-duration cases get periodic re-review).
+  reviewed_auto_unhide_days: 90
 
   # Under-servicing — only flag if it's been at least this many days
   # since the initial (avoids flagging today's patient who hasn't yet
