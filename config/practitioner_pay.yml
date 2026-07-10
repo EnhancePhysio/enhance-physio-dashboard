@@ -172,18 +172,7 @@ practitioners:
     recurring_deductions:
       "Mentoring": 4.0
 
-  "Sarah Hamilton":
-    hourly_rate: 47.50
-    commission_pct: 0.42
-    hours_per_day:
-      Monday:    0    # Matt left this blank — assumed 0
-      Tuesday:   0
-      Wednesday: 7.0
-      Thursday:  0
-      Friday:    7.0
-      Saturday:  0
-      Sunday:    0
-    recurring_deductions: {}
+  # Sarah Hamilton — removed v27.0.2, no longer with the clinic.
 
   "Tara Child":
     hourly_rate: 45.00
@@ -199,6 +188,7 @@ practitioners:
     recurring_deductions: {}
 
   "Jess Lewington":
+    aliases: ["Jessica Lewington"]   # v27.0.2 — Cliniko display name
     hourly_rate: 55.00
     commission_pct: 0.42
     hours_per_day:
