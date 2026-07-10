@@ -419,7 +419,7 @@ def compute_clinical_review_diagnostic(client: ClinikoClient,
 
 def compute_clinical_review(client: ClinikoClient,
                               today: date | None = None,
-                              active_window_days: int = 30,
+                              active_window_days: int | None = None,
                               future_months: int = 2,
                               episode_lookback_months: int = 18,
                               progress_callback=None,
@@ -443,6 +443,14 @@ def compute_clinical_review(client: ClinikoClient,
     iterations so the UI can render a live progress bar.
     """
     today = today or date.today()
+    # v27.2.1 — Phase A window now defaults from settings.yml
+    # (``clinical_review.active_window_days``) so the clinical lead's
+    # weekly review can be controlled from one place. Fall back to 7 days
+    # if the setting is missing.
+    if active_window_days is None:
+        active_window_days = _settings_active_window_days()
+        if active_window_days is None or active_window_days <= 0:
+            active_window_days = 7
 
     # --- Phase A: identify active patient set -----------------------
     tz = pytz.timezone(timezone_name())
