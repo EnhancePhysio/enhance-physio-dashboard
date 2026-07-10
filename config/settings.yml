@@ -5,6 +5,47 @@
 timezone: Australia/Sydney
 financial_year_start_month: 7   # AU FY: Jul 1
 
+# v27.0 — Multi-org Cliniko. Each business has its own Cliniko organisation
+# and API key. Data is fetched per-org and aggregated by the dashboard.
+# The `default: true` org is the fallback when no clinic filter is active
+# (used by tabs that haven't been migrated to multi-org yet).
+# Add or remove orgs as your clinic footprint changes; secrets go in
+# Streamlit Cloud → Manage app → Secrets (never commit API keys to git).
+cliniko_organizations:
+  - key: albury_wodonga
+    name: Albury/Wodonga
+    display_name: Enhance Physio Albury/Wodonga
+    api_key_env: CLINIKO_API_KEY               # existing single-org secret
+    shard: au1
+    default: true
+  - key: mudgeeraba
+    name: Gold Coast (Mudgeeraba)
+    display_name: Enhance Physio Mudgeeraba
+    api_key_env: CLINIKO_API_KEY_MUDGEERABA
+    shard: au1
+  - key: mulgrave
+    name: Melbourne (Mulgrave)
+    display_name: Enhance Physio Mulgrave
+    api_key_env: CLINIKO_API_KEY_MULGRAVE
+    shard: au1
+
+# v26.11.2 — Commission calculator item filtering. Cliniko often bills
+# non-service fees (DNA, room hire, products) as line items on a regular
+# appointment, so filtering by appt type alone misses them. Match by
+# invoice-item name and/or code. Patterns are regex (case-insensitive
+# for names, case-sensitive for codes because codes are canonical).
+commission:
+  use_ex_tax: true              # match Cliniko's "Amount (ex. tax)" column
+  excluded_item_name_patterns:
+    - 'did not arrive'
+    - '\bDNA\b'
+    - 'room hire'
+    - 'MLCOA'                   # covers MLCOA Room Hire + MLCOA Video Assessment
+  excluded_item_code_patterns:
+    - '^DNA$'
+    - '^MLCOARH$'
+    - '^MLCOAVA$'
+
 # Utilisation — keywords used to classify unavailable_blocks.
 # Case-insensitive substring match.
 utilisation:

@@ -6,6 +6,8 @@
 #   - hours_per_day          weekly schedule, used to compute monthly hours
 #   - recurring_deductions   monthly hour deductions (catch-ups, leadership, etc)
 #   - aliases                optional Cliniko-name variants for matching
+#   - region                 v27.0 — one of albury_wodonga / mudgeeraba / mulgrave
+#                              (drives the region selector in the Commission tab)
 #
 # Per-month manual adjustments (GP meetings, ad-hoc mentoring) are entered
 # in the Commission tab UI, not here. They subtract from hours just like
@@ -246,4 +248,154 @@ practitioners:
       Friday:    5.0
       Saturday:  0
       Sunday:    0
+    recurring_deductions: {}
+
+  # -----------------------------------------------------------------
+  # Melbourne (Mulgrave) — v27.0
+  # James is the regional manager (analogous to Patrick/Alesha/Maya in
+  # Albury-Wodonga). Full daily schedule TBD — please confirm the
+  # hours_per_day breakdown for each Mulgrave practitioner.
+  # -----------------------------------------------------------------
+  "James (Mulgrave)":
+    region: mulgrave
+    is_manager: true            # 44% commission per Matt's spec
+    hourly_rate: 0.00           # TBD — please supply
+    commission_pct: 0.44
+    hours_per_day:
+      Monday:    0
+      Tuesday:   0
+      Wednesday: 0
+      Thursday:  0
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Simon (Mulgrave)":
+    region: mulgrave
+    hourly_rate: 0.00           # TBD — please supply
+    commission_pct: 0.42        # v27.0 — Matt corrected from 0.40 to 0.42
+    # 18.5 hrs/week — split TBD
+    hours_per_day:
+      Monday:    0
+      Tuesday:   0
+      Wednesday: 0
+      Thursday:  0
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Noah (Mulgrave)":
+    region: mulgrave
+    hourly_rate: 0.00           # TBD
+    commission_pct: 0.40
+    hours_per_day:              # 38 hrs/week — split TBD
+      Monday:    0
+      Tuesday:   0
+      Wednesday: 0
+      Thursday:  0
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Rusha (Mulgrave)":
+    region: mulgrave
+    hourly_rate: 0.00           # TBD
+    commission_pct: 0.40
+    hours_per_day:              # 38 hrs/week — split TBD
+      Monday:    0
+      Tuesday:   0
+      Wednesday: 0
+      Thursday:  0
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  "Justin (Mulgrave)":
+    region: mulgrave
+    hourly_rate: 0.00           # TBD
+    commission_pct: 0.40
+    hours_per_day:              # 38 hrs/week — split TBD
+      Monday:    0
+      Tuesday:   0
+      Wednesday: 0
+      Thursday:  0
+      Friday:    0
+      Saturday:  0
+      Sunday:    0
+    recurring_deductions: {}
+
+  # -----------------------------------------------------------------
+  # Gold Coast (Mudgeeraba) — v27.0
+  # Commission is calculated fortnightly (not monthly) — Phase 7 will
+  # add fortnightly-mode support. For now these are stubs; please
+  # supply hourly rates, weekly schedules, and confirm the
+  # standard commission % for this region.
+  # No recurring deductions per Matt's spec (any variance handled via
+  # the paid_hours_override / manual_adj columns in the UI).
+  # -----------------------------------------------------------------
+  "Renee (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00           # TBD
+    commission_pct: 0.40        # TBD — confirm
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Hamzeh (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Kurt (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Emma (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Ryan (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Jaslin (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Samantha (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Isaac (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
+    recurring_deductions: {}
+
+  "Ngaire (Mudgeeraba)":
+    region: mudgeeraba
+    hourly_rate: 0.00
+    commission_pct: 0.40
+    hours_per_day: {Monday: 0, Tuesday: 0, Wednesday: 0, Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0}
     recurring_deductions: {}
