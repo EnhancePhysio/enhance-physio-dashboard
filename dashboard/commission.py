@@ -60,6 +60,23 @@ _DEFAULT_EXCLUDED_APPT_TYPE_PATTERNS = [
     "dna fee",
 ]
 
+# v26.11.2 — Cliniko often bills DNA/room-hire/products as line items on
+# a regular appointment (so filtering by appt type misses them). These
+# patterns match the invoice item's `name` field, case-insensitive.
+_DEFAULT_EXCLUDED_ITEM_NAME_PATTERNS = [
+    r"did not arrive",
+    r"\bDNA\b",
+    r"room hire",
+    r"MLCOA",             # MLCOA Room Hire, MLCOA Video Assessment (both are non-service)
+]
+
+# Match against the invoice item's `code` field (Cliniko billing code).
+_DEFAULT_EXCLUDED_ITEM_CODE_PATTERNS = [
+    r"^DNA$",
+    r"^MLCOARH$",
+    r"^MLCOAVA$",
+]
+
 
 # -------------------------------------------------------------------
 # Config loading
@@ -72,6 +89,7 @@ class PractitionerPay:
     hours_per_day: dict[str, float]                    # DOW → hours
     recurring_deductions: dict[str, float] = field(default_factory=dict)
     aliases: list[str] = field(default_factory=list)
+    region: str = "albury_wodonga"                     # v27.0 default
 
     @property
     def total_recurring_deduction_hours(self) -> float:
@@ -112,6 +130,8 @@ def load_pay_config(path: Path | None = None) -> PayConfig:
     super_default = float(raw.get("super_rate_default", 0.12))
     super_changes = list(raw.get("super_rate_changes") or [])
     defaults = dict(raw.get("default_recurring_deductions") or {})
+    # v26.11.4 — additional deductions for practitioners flagged as manager
+    manager_extras = dict(raw.get("manager_extra_recurring_deductions") or {})
     practitioners: list[PractitionerPay] = []
     for name, body in (raw.get("practitioners") or {}).items():
         body = body or {}
@@ -122,6 +142,13 @@ def load_pay_config(path: Path | None = None) -> PayConfig:
             ded = dict(body["recurring_deductions"] or {})
         else:
             ded = dict(defaults)
+        # v26.11.4 — merge in manager extras when is_manager: true.
+        # These add on top of whatever recurring_deductions were set,
+        # so a manager with a custom deduction block still gets the
+        # quarterly Matt catch-up.
+        if body.get("is_manager"):
+            for k, v in manager_extras.items():
+                ded[k] = ded.get(k, 0.0) + float(v)
         practitioners.append(PractitionerPay(
             name=name,
             hourly_rate=float(body.get("hourly_rate", 0.0)),
@@ -130,6 +157,7 @@ def load_pay_config(path: Path | None = None) -> PayConfig:
                             for dow in DOWS},
             recurring_deductions=ded,
             aliases=list(body.get("aliases") or []),
+            region=str(body.get("region") or "albury_wodonga"),
         ))
     return PayConfig(
         super_rate_default=super_default,
@@ -435,6 +463,16 @@ def fetch_invoice_items_diagnostic(client: ClinikoClient,
     except Exception:
         pass
 
+    # v26.11.2 — item-name/code exclusion patterns (same as production)
+    from dashboard.config import load_settings
+    cfg2 = load_settings().get("commission", {}) or {}
+    item_name_patterns = cfg2.get("excluded_item_name_patterns",
+                                     _DEFAULT_EXCLUDED_ITEM_NAME_PATTERNS)
+    item_code_patterns = cfg2.get("excluded_item_code_patterns",
+                                     _DEFAULT_EXCLUDED_ITEM_CODE_PATTERNS)
+    item_name_res_diag = [re.compile(p, re.IGNORECASE) for p in item_name_patterns]
+    item_code_res_diag = [re.compile(p) for p in item_code_patterns]
+
     counters = {
         "scanned": 0,
         "no_invoice_link": 0,
@@ -445,6 +483,8 @@ def fetch_invoice_items_diagnostic(client: ClinikoClient,
         "archived": 0,
         "cancelled": 0,
         "excluded_appt_type": 0,
+        "excluded_item_name": 0,
+        "excluded_item_code": 0,
         "kept": 0,
     }
     first_raw: dict[str, Any] | None = None
@@ -491,29 +531,34 @@ def fetch_invoice_items_diagnostic(client: ClinikoClient,
             if any(r.search(type_name) for r in excluded_res):
                 counters["excluded_appt_type"] += 1
                 continue
-            amount = it.get("total_including_tax")
-            if amount is None:
-                amount = it.get("total")
-            if amount is None:
-                price = it.get("net_price") or it.get("unit_price") or 0
-                qty = it.get("quantity") or 1
-                try:
-                    amount = float(price) * float(qty)
-                except (TypeError, ValueError):
-                    amount = 0
+            # v26.11.2 — item-name / item-code exclusion
+            item_name_val = str(it.get("name") or "")
+            item_code_val = str(it.get("code") or "")
+            if any(r.search(item_name_val) for r in item_name_res_diag):
+                counters["excluded_item_name"] += 1
+                continue
+            if item_code_val and any(r.search(item_code_val) for r in item_code_res_diag):
+                counters["excluded_item_code"] += 1
+                continue
+            # Ex-tax amount (matches Cliniko's "Amount ex. tax" report column)
+            price = it.get("net_price")
+            qty = it.get("quantity", 1)
+            if price is None:
+                price = it.get("unit_price") or 0
             try:
-                amount = float(amount)
+                amount = float(price) * float(qty or 1)
             except (TypeError, ValueError):
                 continue
             counters["kept"] += 1
-            if len(sample_kept) < 3:
+            if len(sample_kept) < 5:
                 sample_kept.append({
                     "invoice_id": inv_id,
                     "appointment_id": aid,
                     "practitioner_id": meta["practitioner_id"],
                     "appt_type_name": type_name,
-                    "item_name": str(it.get("name") or "")[:60],
-                    "amount": amount,
+                    "item_name": item_name_val[:60],
+                    "item_code": item_code_val,
+                    "amount_ex_tax": round(amount, 2),
                 })
     except Exception as e:
         err = f"{type(e).__name__}: {e}"
@@ -637,6 +682,19 @@ def fetch_invoice_items_for_month(client: ClinikoClient,
     # entirely. Cuts wall-clock time roughly in half.
     appts = _fetch_active_appts_only(client, dr)
 
+    # v26.11.2 — pre-compile item-name / item-code exclusion regexes
+    # (Cliniko bills DNA/room-hire/products as line items on regular
+    # appts, so appointment-type filtering alone misses them).
+    from dashboard.config import load_settings
+    cfg = load_settings().get("commission", {}) or {}
+    item_name_patterns = cfg.get("excluded_item_name_patterns",
+                                    _DEFAULT_EXCLUDED_ITEM_NAME_PATTERNS)
+    item_code_patterns = cfg.get("excluded_item_code_patterns",
+                                    _DEFAULT_EXCLUDED_ITEM_CODE_PATTERNS)
+    item_name_res = [re.compile(p, re.IGNORECASE) for p in item_name_patterns]
+    item_code_res = [re.compile(p) for p in item_code_patterns]
+    use_ex_tax = bool(cfg.get("use_ex_tax", True))
+
     # Map appt_id → (practitioner_id, did_not_arrive, archived, cancelled,
     # appointment_type_id) for fast lookup.
     # v26.10.5 — use NaN-safe truthiness helpers because pandas iterrows()
@@ -721,23 +779,54 @@ def fetch_invoice_items_for_month(client: ClinikoClient,
                 if not prac_id:
                     continue
                 type_name = ""
-            # Cliniko's invoice_item exposes `total_including_tax` as the
-            # gross line total (post-discount, post-tax). Fall back to
-            # net_price × quantity, then unit_price × quantity.
-            amount = it.get("total_including_tax")
-            if amount is None:
-                amount = it.get("total")
-            if amount is None:
-                price = it.get("net_price") or it.get("unit_price") or 0
-                qty = it.get("quantity") or 1
-                try:
-                    amount = float(price) * float(qty)
-                except (TypeError, ValueError):
-                    amount = 0
-            try:
-                amount = float(amount)
-            except (TypeError, ValueError):
+
+            # v26.11.2 — item-level exclusion (DNA fee, MLCOA room hire,
+            # products billed on regular appts). Filter by name/code
+            # before summing.
+            item_name = str(it.get("name") or "")
+            item_code = str(it.get("code") or "")
+            if any(r.search(item_name) for r in item_name_res):
                 continue
+            if item_code and any(r.search(item_code) for r in item_code_res):
+                continue
+
+            # v26.11.2 — use net_price (ex GST) not total_including_tax.
+            # Matches the "Amount (ex. tax)" column in Cliniko's
+            # Practitioner-Revenue-by-raised-invoices report. Toggleable
+            # via commission.use_ex_tax in settings.yml.
+            if use_ex_tax:
+                # net_price = per-unit ex-tax; multiply by quantity
+                price = it.get("net_price")
+                qty = it.get("quantity", 1)
+                if price is None:
+                    price = it.get("unit_price") or 0
+                try:
+                    amount = float(price) * float(qty or 1)
+                except (TypeError, ValueError):
+                    amount = None
+                if amount is None:
+                    # Fall back to inc-tax minus tax_amount if net_price is missing
+                    inc = it.get("total_including_tax") or it.get("total") or 0
+                    tax = it.get("tax_amount") or 0
+                    try:
+                        amount = float(inc) - float(tax)
+                    except (TypeError, ValueError):
+                        continue
+            else:
+                amount = it.get("total_including_tax")
+                if amount is None:
+                    amount = it.get("total")
+                if amount is None:
+                    price = it.get("net_price") or it.get("unit_price") or 0
+                    qty = it.get("quantity") or 1
+                    try:
+                        amount = float(price) * float(qty)
+                    except (TypeError, ValueError):
+                        amount = 0
+                try:
+                    amount = float(amount)
+                except (TypeError, ValueError):
+                    continue
             rows.append({
                 "invoice_item_id": str(it.get("id") or ""),
                 "invoice_id": inv_id,
@@ -818,12 +907,23 @@ def compute_commission_for_practitioner(
     revenue: float,
     super_rate: float,
     manual_adjustment_hours: float = 0.0,
+    paid_hours_override: float | None = None,
     cliniko_practitioner_id: str | None = None,
 ) -> CommissionResult:
-    """Apply the formula end-to-end for one practitioner."""
+    """Apply the formula end-to-end for one practitioner.
+
+    v26.11.3 — added ``paid_hours_override``. If provided (non-None,
+    positive), it REPLACES the computed paid_hours entirely, bypassing
+    both recurring deductions and manual_adjustment_hours. Intended for
+    pasting actual Xero timesheet hours which capture real-world sick
+    days / short weeks that the theoretical schedule can't predict.
+    """
     base_hours = hours_for_month(year, month, prac.hours_per_day)
     deduction_hours = prac.total_recurring_deduction_hours + float(manual_adjustment_hours or 0)
-    paid_hours = max(0.0, base_hours - deduction_hours)
+    if paid_hours_override is not None and paid_hours_override > 0:
+        paid_hours = float(paid_hours_override)
+    else:
+        paid_hours = max(0.0, base_hours - deduction_hours)
 
     base_pay = paid_hours * prac.hourly_rate
     base_super = base_pay * super_rate
@@ -959,6 +1059,7 @@ def compute_commission_table(
     pay_config: PayConfig | None = None,
     cliniko_practitioners: pd.DataFrame | None = None,
     manual_adjustments: dict[str, float] | None = None,
+    paid_hours_overrides: dict[str, float] | None = None,
 ) -> tuple[list[CommissionResult], dict[str, str | None]]:
     """End-to-end: returns (results, name_to_cliniko_id_map).
 
@@ -979,15 +1080,19 @@ def compute_commission_table(
         cliniko_practitioners = load_practitioners(client)
     id_map = resolve_cliniko_ids(pay_config, cliniko_practitioners)
 
+    paid_hours_overrides = paid_hours_overrides or {}
     results: list[CommissionResult] = []
     for prac in pay_config.practitioners:
         cid = id_map.get(prac.name)
         revenue = float(revenue_map.get(cid, 0.0)) if cid else 0.0
         manual_h = float(manual_adjustments.get(prac.name, 0.0))
+        override = paid_hours_overrides.get(prac.name)
+        override_val = float(override) if override else None
         results.append(compute_commission_for_practitioner(
             prac, year, month,
             revenue=revenue,
             super_rate=super_rate,
+            paid_hours_override=override_val,
             manual_adjustment_hours=manual_h,
             cliniko_practitioner_id=cid,
         ))
