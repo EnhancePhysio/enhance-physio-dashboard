@@ -159,12 +159,30 @@ clinical_review:
   # rebooked).
   under_servicing_min_days: 14
 
+  # v27.2.2 — Only patients in these funding buckets show up in the
+  # Clinical Review queue. Insurance/compensable types are the highest
+  # over-servicing risk; Private/EPC/NDIS/DVA are excluded because they
+  # have their own natural session caps. Add or remove entries here
+  # to change the queue's coverage. Set to empty list [] to include
+  # every bucket.
+  include_buckets:
+    - NSW WorkCover
+    - VIC WorkCover
+    - QLD WorkCover
+    - TAC
+    - Comcare
+
   # Per-funding-bucket thresholds. max_appts and max_days are EITHER
   # triggers — flag if either exceeded. Set null to ignore that axis.
+  # Buckets not listed in include_buckets above still get classified
+  # (so the numbers show up in other reports) but never surface in
+  # the Clinical Review queue.
   buckets:
     Private/EPC:    { max_appts: 20, max_days: 90 }
     VIC WorkCover:  { max_appts: 36, max_days: 252 }   # 3× PMP @ 12 weeks
     NSW WorkCover:  { max_appts: 40, max_days: null }  # 5× AHTR @ 8 appts
+    QLD WorkCover:  { max_appts: 40, max_days: null }  # confirm with Matt
+    Comcare:        { max_appts: 30, max_days: null }  # confirm with Matt
     TAC:            { max_appts: 30, max_days: null }
     DVA:            { max_appts: 30, max_days: null }
     NDIS:           { max_appts: 30, max_days: null }
