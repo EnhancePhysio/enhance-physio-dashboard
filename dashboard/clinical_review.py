@@ -48,6 +48,9 @@ from dashboard.date_ranges import DateRange
 _BUCKET_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("VIC WorkCover", re.compile(r"\bvic(?:torian)?\s*work\s*cover\b", re.IGNORECASE)),
     ("NSW WorkCover", re.compile(r"\bnsw\s*work\s*cover\b", re.IGNORECASE)),
+    # v27.2.2 — added QLD WorkCover for the Mudgeeraba clinic.
+    ("QLD WorkCover", re.compile(r"\b(?:qld|queensland)\s*work\s*cover\b", re.IGNORECASE)),
+    ("Comcare",       re.compile(r"\bcomcare\b", re.IGNORECASE)),
     ("NDIS",          re.compile(r"\bNDIS\b", re.IGNORECASE)),
     ("TAC",           re.compile(r"\bTAC\b", re.IGNORECASE)),
     ("DVA",           re.compile(r"\bDVA\b", re.IGNORECASE)),
@@ -63,10 +66,28 @@ _DEFAULT_THRESHOLDS: dict[str, dict[str, int | None]] = {
     "Private/EPC":   {"max_appts": 20, "max_days": 90},
     "VIC WorkCover": {"max_appts": 36, "max_days": 252},
     "NSW WorkCover": {"max_appts": 40, "max_days": None},
+    "QLD WorkCover": {"max_appts": 40, "max_days": None},   # confirm w/ Matt
+    "Comcare":       {"max_appts": 30, "max_days": None},   # confirm w/ Matt
     "TAC":           {"max_appts": 30, "max_days": None},
     "DVA":           {"max_appts": 30, "max_days": None},
     "NDIS":          {"max_appts": 30, "max_days": None},
 }
+
+
+# v27.2.2 — buckets that show up in the Clinical Review queue. The rest
+# are still classified (so their history is fetched + counted) but they
+# never appear in the queue for clinical review. Overridable via
+# ``settings.yml → clinical_review.include_buckets``.
+# Default: only compensable insurance claim types (WC / TAC / Comcare),
+# because Private/EPC/NDIS/DVA patients have their own natural session
+# caps and rarely need this kind of intervention.
+_DEFAULT_INCLUDE_BUCKETS: list[str] = [
+    "NSW WorkCover",
+    "VIC WorkCover",
+    "QLD WorkCover",
+    "TAC",
+    "Comcare",
+]
 
 
 _INITIAL_TYPE_PATTERN = re.compile(
@@ -110,6 +131,16 @@ def _settings_thresholds() -> dict[str, dict[str, int | None]]:
 def _settings_active_window_days() -> int:
     cr = load_settings().get("clinical_review") or {}
     return int(cr.get("active_window_days", 14))
+
+
+def _settings_include_buckets() -> set[str]:
+    """v27.2.2 — Buckets to include in the Clinical Review queue.
+    Empty list / missing setting → include every bucket."""
+    cr = load_settings().get("clinical_review") or {}
+    raw = cr.get("include_buckets")
+    if raw is None:
+        raw = _DEFAULT_INCLUDE_BUCKETS
+    return {str(b).strip() for b in raw if str(b).strip()}
 
 
 def _settings_under_servicing_min_days() -> int:
@@ -557,6 +588,7 @@ def compute_clinical_review(client: ClinikoClient,
     # ---- Phase C: bucket + threshold logic ----
     thresholds = _settings_thresholds()
     active_window = _settings_active_window_days()
+    include_buckets = _settings_include_buckets()  # v27.2.2
     under_min_days = _settings_under_servicing_min_days()
     today_ts = pd.Timestamp(today).tz_localize("UTC") + pd.Timedelta(hours=23, minutes=59)
 
@@ -592,6 +624,11 @@ def compute_clinical_review(client: ClinikoClient,
 
         latest = funded.iloc[-1]
         latest_bucket = str(latest["bucket"])
+        # v27.2.2 — Skip buckets the clinic doesn't want in the queue
+        # (default: Private/EPC/NDIS/DVA are excluded — those patients
+        # rarely need clinical over-servicing intervention).
+        if include_buckets and latest_bucket not in include_buckets:
+            continue
         bucket_appts = funded[funded["bucket"] == latest_bucket].sort_values(
             "starts_at"
         )
