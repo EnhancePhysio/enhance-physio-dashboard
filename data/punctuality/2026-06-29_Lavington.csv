@@ -1,0 +1,66 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2026-06-29,Lavington,Matt,Monday,5,0,3,0,
+2026-06-29,Lavington,Matt,Tuesday,0,0,0,0,off
+2026-06-29,Lavington,Matt,Wednesday,0,0,0,0,off
+2026-06-29,Lavington,Matt,Thursday,0,0,0,0,off
+2026-06-29,Lavington,Matt,Friday,2,0,0,0,
+2026-06-29,Lavington,Nath,Monday,0,0,0,0,off
+2026-06-29,Lavington,Nath,Tuesday,0,0,0,0,off
+2026-06-29,Lavington,Nath,Wednesday,4,0,4,0,
+2026-06-29,Lavington,Nath,Thursday,0,0,1,0,
+2026-06-29,Lavington,Nath,Friday,1,0,0,0,
+2026-06-29,Lavington,Chris OB,Monday,5,0,5,0,
+2026-06-29,Lavington,Chris OB,Tuesday,0,0,0,0,off
+2026-06-29,Lavington,Chris OB,Wednesday,4,0,3,0,
+2026-06-29,Lavington,Chris OB,Thursday,0,0,2,0,
+2026-06-29,Lavington,Chris OB,Friday,3,0,0,0,
+2026-06-29,Lavington,Mitch,Monday,5,0,5,0,
+2026-06-29,Lavington,Mitch,Tuesday,0,0,5,0,
+2026-06-29,Lavington,Mitch,Wednesday,6,0,5,1,
+2026-06-29,Lavington,Mitch,Thursday,0,0,3,0,
+2026-06-29,Lavington,Mitch,Friday,5,0,0,0,
+2026-06-29,Lavington,Jess,Monday,0,0,0,0,off
+2026-06-29,Lavington,Jess,Tuesday,0,0,3,0,
+2026-06-29,Lavington,Jess,Wednesday,4,0,3,0,
+2026-06-29,Lavington,Jess,Thursday,0,0,5,0,
+2026-06-29,Lavington,Jess,Friday,4,0,4,0,
+2026-06-29,Lavington,Jackson,Monday,5,0,3,0,
+2026-06-29,Lavington,Jackson,Tuesday,0,0,3,0,
+2026-06-29,Lavington,Jackson,Wednesday,0,0,6,1,
+2026-06-29,Lavington,Jackson,Thursday,5,0,5,0,
+2026-06-29,Lavington,Jackson,Friday,3,0,2,0,
+2026-06-29,Lavington,Sam,Monday,0,0,0,0,off
+2026-06-29,Lavington,Sam,Tuesday,0,0,8,3,
+2026-06-29,Lavington,Sam,Wednesday,0,0,1,0,
+2026-06-29,Lavington,Sam,Thursday,7,0,2,0,
+2026-06-29,Lavington,Sam,Friday,2,2,0,0,
+2026-06-29,Lavington,Seb,Monday,8,0,6,3,
+2026-06-29,Lavington,Seb,Tuesday,0,0,0,0,off
+2026-06-29,Lavington,Seb,Wednesday,0,0,0,0,off
+2026-06-29,Lavington,Seb,Thursday,7,0,2,0,
+2026-06-29,Lavington,Seb,Friday,0,0,1,0,
+2026-06-29,Lavington,Ben,Monday,0,0,0,0,off
+2026-06-29,Lavington,Ben,Tuesday,5,0,0,0,
+2026-06-29,Lavington,Ben,Wednesday,0,0,4,3,
+2026-06-29,Lavington,Ben,Thursday,4,0,2,0,
+2026-06-29,Lavington,Ben,Friday,5,0,0,0,
+2026-06-29,Lavington,Paddy,Monday,0,0,0,0,off
+2026-06-29,Lavington,Paddy,Tuesday,7,0,2,0,
+2026-06-29,Lavington,Paddy,Wednesday,5,0,5,8,
+2026-06-29,Lavington,Paddy,Thursday,5,0,5,4,
+2026-06-29,Lavington,Paddy,Friday,3,0,3,4,
+2026-06-29,Lavington,Tori,Monday,0,0,0,0,off
+2026-06-29,Lavington,Tori,Tuesday,0,0,5,5,
+2026-06-29,Lavington,Tori,Wednesday,10,0,5,5,
+2026-06-29,Lavington,Tori,Thursday,8,0,3,0,
+2026-06-29,Lavington,Tori,Friday,11,0,1,0,
+2026-06-29,Lavington,Emily,Monday,9,0,8,3,
+2026-06-29,Lavington,Emily,Tuesday,0,0,0,0,off
+2026-06-29,Lavington,Emily,Wednesday,0,0,1,0,
+2026-06-29,Lavington,Emily,Thursday,6,0,3,0,
+2026-06-29,Lavington,Emily,Friday,0,9,0,1,
+2026-06-29,Lavington,Tara,Monday,7,0,7,2,
+2026-06-29,Lavington,Tara,Tuesday,0,0,3,0,
+2026-06-29,Lavington,Tara,Wednesday,0,0,0,0,off
+2026-06-29,Lavington,Tara,Thursday,5,0,5,0,
+2026-06-29,Lavington,Tara,Friday,5,0,1,0,
