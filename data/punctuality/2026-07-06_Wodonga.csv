@@ -1,0 +1,56 @@
+week_starting,clinic,practitioner,day,bucket_0_5,bucket_6_10,bucket_11_14,bucket_15_plus,status
+2026-07-06,Wodonga,Maya,Monday,9,0,0,0,unreadable
+2026-07-06,Wodonga,Maya,Tuesday,0,0,0,0,sick
+2026-07-06,Wodonga,Maya,Wednesday,0,0,0,0,sick
+2026-07-06,Wodonga,Maya,Thursday,0,0,0,0,sick
+2026-07-06,Wodonga,Maya,Friday,0,0,0,0,
+2026-07-06,Wodonga,Chris Oats,Monday,12,0,0,0,unreadable
+2026-07-06,Wodonga,Chris Oats,Tuesday,0,0,0,0,
+2026-07-06,Wodonga,Chris Oats,Wednesday,0,0,0,0,
+2026-07-06,Wodonga,Chris Oats,Thursday,0,0,0,0,
+2026-07-06,Wodonga,Chris Oats,Friday,0,0,0,0,
+2026-07-06,Wodonga,Dave,Monday,0,0,0,0,leave
+2026-07-06,Wodonga,Dave,Tuesday,0,0,0,0,leave
+2026-07-06,Wodonga,Dave,Wednesday,0,0,0,0,leave
+2026-07-06,Wodonga,Dave,Thursday,0,0,0,0,leave
+2026-07-06,Wodonga,Dave,Friday,0,0,0,0,leave
+2026-07-06,Wodonga,Chris Obi,Monday,0,0,0,0,
+2026-07-06,Wodonga,Chris Obi,Tuesday,6,0,0,0,unreadable
+2026-07-06,Wodonga,Chris Obi,Wednesday,0,0,0,0,
+2026-07-06,Wodonga,Chris Obi,Thursday,7,0,0,0,unreadable
+2026-07-06,Wodonga,Chris Obi,Friday,0,0,0,0,
+2026-07-06,Wodonga,Mitch,Monday,0,0,0,0,
+2026-07-06,Wodonga,Mitch,Tuesday,13,0,0,0,unreadable
+2026-07-06,Wodonga,Mitch,Wednesday,0,0,0,0,
+2026-07-06,Wodonga,Mitch,Thursday,10,0,6,0,unreadable
+2026-07-06,Wodonga,Mitch,Friday,0,0,0,0,
+2026-07-06,Wodonga,Jayde,Monday,0,0,0,0,
+2026-07-06,Wodonga,Jayde,Tuesday,10,0,0,0,unreadable
+2026-07-06,Wodonga,Jayde,Wednesday,0,0,0,0,
+2026-07-06,Wodonga,Jayde,Thursday,6,0,0,0,unreadable
+2026-07-06,Wodonga,Jayde,Friday,0,0,0,0,
+2026-07-06,Wodonga,Sam,Monday,12,0,0,0,unreadable
+2026-07-06,Wodonga,Sam,Tuesday,0,0,0,0,
+2026-07-06,Wodonga,Sam,Wednesday,11,0,0,0,unreadable
+2026-07-06,Wodonga,Sam,Thursday,3,0,0,0,unreadable
+2026-07-06,Wodonga,Sam,Friday,2,0,0,0,unreadable
+2026-07-06,Wodonga,Emily,Monday,0,0,0,0,
+2026-07-06,Wodonga,Emily,Tuesday,12,0,0,0,unreadable
+2026-07-06,Wodonga,Emily,Wednesday,0,0,0,0,
+2026-07-06,Wodonga,Emily,Thursday,0,0,0,0,leave
+2026-07-06,Wodonga,Emily,Friday,0,0,0,0,
+2026-07-06,Wodonga,Kenz,Monday,12,0,0,0,unreadable
+2026-07-06,Wodonga,Kenz,Tuesday,0,0,0,0,
+2026-07-06,Wodonga,Kenz,Wednesday,9,0,0,0,unreadable
+2026-07-06,Wodonga,Kenz,Thursday,1,6,0,0,unreadable
+2026-07-06,Wodonga,Kenz,Friday,2,0,0,0,unreadable
+2026-07-06,Wodonga,Nat,Monday,8,0,0,0,unreadable
+2026-07-06,Wodonga,Nat,Tuesday,0,0,0,0,
+2026-07-06,Wodonga,Nat,Wednesday,5,0,0,0,unreadable
+2026-07-06,Wodonga,Nat,Thursday,7,0,0,0,unreadable
+2026-07-06,Wodonga,Nat,Friday,3,0,0,0,unreadable
+2026-07-06,Wodonga,Tara,Monday,0,0,0,0,
+2026-07-06,Wodonga,Tara,Tuesday,0,0,0,0,
+2026-07-06,Wodonga,Tara,Wednesday,0,0,0,0,
+2026-07-06,Wodonga,Tara,Thursday,0,0,0,0,
+2026-07-06,Wodonga,Tara,Friday,0,0,0,0,
