@@ -150,9 +150,17 @@ def create_snapshot(year: int, month: int,
     orgs_with_data = [k for k, v in all_org_data.items()
                         if isinstance(v, dict) and "metrics" in v]
     if not orgs_with_data:
+        errors = [f"{k}: {v.get('error', 'no error captured')}"
+                  for k, v in all_org_data.items()
+                  if isinstance(v, dict) and "error" in v]
+        detail = (
+            " Per-org errors: " + " | ".join(errors)
+            if errors
+            else " (No orgs were iterated — check CLINIKO_API_KEY* secrets.)"
+        )
         raise RuntimeError(
-            "No configured orgs returned data — snapshot NOT saved. "
-            "Check that at least one CLINIKO_API_KEY* secret is set."
+            "No configured orgs returned data — snapshot NOT saved."
+            + detail
         )
 
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
