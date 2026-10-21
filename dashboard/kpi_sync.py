@@ -106,34 +106,36 @@ def _week_start(d: date) -> date:
 
 
 def adapt_punctuality(text: str) -> pd.DataFrame:
-    """Admin tool: date, clinic, practitioner, b05, b610, b1114, b15, status
-       Dashboard:  week_starting, clinic, practitioner, day,
-                   bucket_0_5, bucket_6_10, bucket_11_14, bucket_15_plus, status
+    """Admin tool's punctuality.csv already matches the dashboard's expected
+    schema (week_starting, clinic, practitioner, day, bucket_* , status), so
+    we just read it through. Historical versions of the admin tool exported
+    a different schema with a 'date' column — handle that too, just in case.
     """
+    cols = ["week_starting", "clinic", "practitioner", "day",
+            "bucket_0_5", "bucket_6_10", "bucket_11_14", "bucket_15_plus", "status"]
     if not text or not text.strip():
-        return pd.DataFrame(columns=[
-            "week_starting", "clinic", "practitioner", "day",
-            "bucket_0_5", "bucket_6_10", "bucket_11_14", "bucket_15_plus", "status",
-        ])
+        return pd.DataFrame(columns=cols)
     df = pd.read_csv(io.StringIO(text))
     if df.empty:
         return df
-    df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
-    df = df.dropna(subset=["date"])
-    df["week_starting"] = df["date"].map(_week_start).map(lambda d: d.isoformat())
-    df["day"] = df["date"].map(lambda d: _DAY_NAMES[d.weekday()])
-    out = df.rename(columns={
-        "b05": "bucket_0_5",
-        "b610": "bucket_6_10",
-        "b1114": "bucket_11_14",
-        "b15": "bucket_15_plus",
-    })
-    cols = ["week_starting", "clinic", "practitioner", "day",
-            "bucket_0_5", "bucket_6_10", "bucket_11_14", "bucket_15_plus", "status"]
+
+    # Legacy schema with 'date' + 'b05/b610/...' — convert to canonical.
+    if "date" in df.columns and "week_starting" not in df.columns:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
+        df = df.dropna(subset=["date"])
+        df["week_starting"] = df["date"].map(_week_start).map(lambda d: d.isoformat())
+        df["day"] = df["date"].map(lambda d: _DAY_NAMES[d.weekday()])
+        df = df.rename(columns={
+            "b05": "bucket_0_5",
+            "b610": "bucket_6_10",
+            "b1114": "bucket_11_14",
+            "b15": "bucket_15_plus",
+        })
+
     for c in cols:
-        if c not in out.columns:
-            out[c] = "" if c in ("status",) else 0
-    return out[cols]
+        if c not in df.columns:
+            df[c] = "" if c == "status" else 0
+    return df[cols]
 
 
 def adapt_nps(text: str) -> pd.DataFrame:
@@ -251,7 +253,7 @@ def last_status() -> dict[str, Any]:
     try:
         return json.loads(_STATUS_FILE.read_text())
     except Exception:
-        return {"enabled": False, "ok": False, "stamp": Null, "detail": {}}
+        return {"enabled": False, "ok": False, "stamp": None, "detail": {}}
 
 
 # -------------------------------------------------------------------
