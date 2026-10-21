@@ -98,7 +98,7 @@ def create_snapshot(year: int, month: int,
             appt_types = load_appointment_types(client)
             practitioners = load_practitioners(client)
             businesses = load_businesses(client)
-            result, _ = compute_core_metrics(
+            result = compute_core_metrics(
                 client, dr, appt_types,
                 business_ids=[],
                 practitioner_ids=[],
