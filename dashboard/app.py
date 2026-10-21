@@ -26,6 +26,7 @@ from dashboard.audit import (aggregate_audit, aggregate_by_check,
 from dashboard.cliniko import ClinikoClient, ClinikoError
 from dashboard.config import dashboard_password, load_settings
 from dashboard.date_ranges import PRESETS, resolve_preset
+from dashboard import kpi_sync
 from dashboard.manual import (
     aggregate_nps_from_individual_scores,
     extract_punctuality_from_image, load_nps, load_punctuality,
@@ -1202,6 +1203,132 @@ _RECALL_BOOKMARKLET_URL = (
 # -------------------------------------------------------------------
 # Entry point
 # -------------------------------------------------------------------
+def _ensure_kpi_sync() -> None:
+    """Run the admin-tool pull once per Streamlit session and surface a status
+    line in the sidebar so Matt can confirm the sync is alive."""
+    if not st.session_state.get("_kpi_sync_done"):
+        try:
+            kpi_sync.sync_now()
+        except Exception as e:
+            st.session_state["_kpi_sync_error"] = f"{type(e).__name__}: {e}"
+        st.session_state["_kpi_sync_done"] = True
+
+    status = kpi_sync.last_status()
+    err = st.session_state.get("_kpi_sync_error")
+    if err:
+        st.sidebar.error(f"KPI sync error: {err}")
+    elif not status.get("enabled"):
+        st.sidebar.warning("KPI sync: disabled (set KPI_DATA_TOKEN secret)")
+    elif status.get("ok"):
+        counts = status.get("detail", {}).get("counts", {})
+        bits = []
+        if "punctuality_rows" in counts: bits.append(f"{counts['punctuality_rows']} punct")
+        if "nps_rows" in counts:         bits.append(f"{counts['nps_rows']} nps")
+        if "audits_bytes" in counts:     bits.append("audits ✓")
+        if "availability_bytes" in counts: bits.append("avail ✓")
+        detail = " · ".join(bits) if bits else "no data yet"
+        st.sidebar.success(f"KPI sync: {detail}")
+    else:
+        reason = status.get("detail", {}).get("reason") or status.get("detail", {}).get("error", "unknown")
+        st.sidebar.warning(f"KPI sync: {reason}")
+
+
+def admin_tool_tab(filters: dict) -> None:
+    """New Phase 2 tab: shows the data pulled from the admin tool's shared
+    repo. Replaces the old manual-upload workflow. The legacy manual_tab
+    is still importable for anyone who needs the fallback uploads — see the
+    expander at the bottom."""
+    st.subheader("📥 Admin tool — synced data")
+    status = kpi_sync.last_status()
+    if not status.get("enabled"):
+        st.warning(
+            "KPI sync is **disabled**. Set the `KPI_DATA_TOKEN` secret on "
+            "Streamlit Cloud to a fine-grained PAT with Contents: Read on "
+            "`EnhancePhysio/enhance-kpi-data`, then redeploy."
+        )
+    elif status.get("ok"):
+        stamp = status.get("stamp", "")
+        st.caption(f"Last synced: {stamp} UTC — from "
+                   f"`{status['detail'].get('repo')}@{status['detail'].get('branch')}`")
+    else:
+        st.error(f"Last sync failed: {status.get('detail')}")
+
+    if st.button("🔄 Re-sync now"):
+        kpi_sync.sync_now()
+        st.rerun()
+
+    st.markdown("---")
+
+    # Punctuality preview
+    with st.expander("Punctuality (from admin tool)", expanded=True):
+        try:
+            df = load_punctuality()
+            if df.empty:
+                st.info("No punctuality rows synced yet.")
+            else:
+                st.caption(f"{len(df):,} rows across {df['practitioner'].nunique()} practitioners")
+                st.dataframe(df.tail(50), use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Loader error: {e}")
+
+    # NPS preview
+    with st.expander("NPS (from admin tool)", expanded=False):
+        try:
+            df = load_nps()
+            if df.empty:
+                st.info("No NPS rows synced yet.")
+            else:
+                st.caption(f"{len(df):,} rows across {df['practitioner'].nunique()} practitioners")
+                st.dataframe(df.tail(50), use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Loader error: {e}")
+
+    # Audits preview
+    with st.expander("Audits (from admin tool)", expanded=False):
+        try:
+            df = kpi_sync.load_admin_audits()
+            if df.empty:
+                st.info("No audit rows synced yet.")
+            else:
+                st.caption(f"{len(df):,} patient audit rows")
+                # Per-practitioner summary
+                if "score_y" in df.columns and "score_denom" in df.columns:
+                    summary = (df.groupby(["clinic", "practitioner"])
+                                 .agg(y=("score_y", "sum"),
+                                      denom=("score_denom", "sum"),
+                                      patients=("patient_name", "nunique"))
+                                 .reset_index())
+                    summary["pct"] = (summary["y"] / summary["denom"].replace(0, pd.NA) * 100).round(1)
+                    st.dataframe(summary, use_container_width=True, hide_index=True)
+                st.caption("Raw patient-level rows:")
+                st.dataframe(df.tail(50), use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Loader error: {e}")
+
+    # Availability preview
+    with st.expander("Availability (from admin tool)", expanded=False):
+        try:
+            df = kpi_sync.load_admin_availability()
+            if df.empty:
+                st.info("No availability rows synced yet.")
+            else:
+                st.caption(f"{len(df):,} rows")
+                st.dataframe(df.tail(50), use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Loader error: {e}")
+
+    # Legacy fallback — hidden by default. Kept for a short transition
+    # period in case Matt needs to upload a historical CSV while the admin
+    # tool is being populated.
+    with st.expander("⚙️ Legacy manual uploads (fallback)", expanded=False):
+        st.caption(
+            "The admin tool at enhancekpitracker.netlify.app is now the "
+            "primary data source. These uploaders are kept as a fallback "
+            "for ad-hoc historical files."
+        )
+        manual_tab(filters)
+
+
 def main() -> None:
     _require_password()
     st.title("Enhance Physio — Performance Dashboard")
@@ -1217,17 +1344,23 @@ def main() -> None:
     except Exception:
         pass
 
+    # Phase 2 — pull punctuality / NPS / audits / availability from the
+    # admin tool's shared GitHub data repo. Runs once per app session; the
+    # result is cached on disk so the per-tab loaders pick it up without
+    # extra network calls.
+    _ensure_kpi_sync()
+
     filters = sidebar_filters()
 
-    (tab_overview, tab_manual, tab_injuries, tab_review,
+    (tab_overview, tab_admin, tab_injuries, tab_review,
      tab_commission, tab_diag) = st.tabs(
-        ["Overview", "Manual data", "🩻 Injuries",
+        ["Overview", "📥 Admin tool data", "🩻 Injuries",
          "🩺 Clinical Review", "💰 Commission", "🔧 Diagnostics"]
     )
     with tab_overview:
         overview_tab(filters)
-    with tab_manual:
-        manual_tab(filters)
+    with tab_admin:
+        admin_tool_tab(filters)
     with tab_injuries:
         injuries_tab(filters)
     with tab_review:
