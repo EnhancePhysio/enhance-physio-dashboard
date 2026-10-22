@@ -480,8 +480,8 @@ def overview_tab(filters: dict):
 
     scored = score_table(wide)
 
-    # KPI cards
-    c1, c2, c3, c4 = st.columns(4)
+    # KPI cards — top row: volume + rate basics; second row: PVA/PPVA + roster size.
+    c1, c2, c3 = st.columns(3)
     with c1:
         kpi_card("Total consults",
                  f"{int(scored['consults_delivered'].fillna(0).sum()):,}")
@@ -491,7 +491,22 @@ def overview_tab(filters: dict):
     with c3:
         kpi_card("Avg Cx/DNA",
                  f"{scored['cx_dna_combined_rate'].fillna(0).mean() * 100:.1f}%")
+
+    c4, c5, c6 = st.columns(3)
     with c4:
+        # PVA = consults ÷ new patients. Average across practitioners with a
+        # valid non-zero PVA; dropping zeros avoids a long tail of brand-new
+        # staff with no new-patient visits pulling the mean to zero.
+        pva_series = pd.to_numeric(scored.get("pva"), errors="coerce").dropna()
+        pva_series = pva_series[pva_series > 0]
+        pva_val = f"{pva_series.mean():.1f}" if not pva_series.empty else "—"
+        kpi_card("Avg PVA", pva_val)
+    with c5:
+        ppva_series = pd.to_numeric(scored.get("ppva"), errors="coerce").dropna()
+        ppva_series = ppva_series[ppva_series > 0]
+        ppva_val = f"{ppva_series.mean():.1f}" if not ppva_series.empty else "—"
+        kpi_card("Avg PPVA (private)", ppva_val)
+    with c6:
         kpi_card("Practitioners in view",
                  str(len(scored)))
 
