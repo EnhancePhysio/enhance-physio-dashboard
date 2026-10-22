@@ -75,49 +75,121 @@ def _require_password() -> None:
 # Cached data access
 # -------------------------------------------------------------------
 @st.cache_resource
-def get_client() -> ClinikoClient:
-    return ClinikoClient()
+def get_client(org_key: str = "") -> ClinikoClient:
+    """Return a Cliniko client for the given org, or the default org
+    when ``org_key`` is empty. Multi-org callers pass the specific key
+    (``albury_wodonga`` / ``mudgeeraba`` / ``mulgrave``) so they hit
+    the right Cliniko tenant."""
+    if not org_key:
+        return ClinikoClient()
+    from dashboard.cliniko import get_client_for_org
+    return get_client_for_org(org_key)
 
 
 @st.cache_data(ttl=load_settings()["cliniko"]["cache_ttl_seconds"])
-def cached_practitioners() -> pd.DataFrame:
-    return load_practitioners(get_client())
+def cached_practitioners(org_key: str = "") -> pd.DataFrame:
+    return load_practitioners(get_client(org_key))
 
 
 @st.cache_data(ttl=load_settings()["cliniko"]["cache_ttl_seconds"])
-def cached_businesses() -> pd.DataFrame:
-    return load_businesses(get_client())
+def cached_businesses(org_key: str = "") -> pd.DataFrame:
+    return load_businesses(get_client(org_key))
 
 
 @st.cache_data(ttl=load_settings()["cliniko"]["cache_ttl_seconds"])
-def cached_appointment_types() -> pd.DataFrame:
-    return load_appointment_types(get_client())
+def cached_appointment_types(org_key: str = "") -> pd.DataFrame:
+    return load_appointment_types(get_client(org_key))
 
 
 @st.cache_data(ttl=load_settings()["cliniko"]["cache_ttl_seconds"])
 def cached_metrics(preset: str, start: date | None, end: date | None,
                     business_ids: tuple[int, ...], practitioner_ids: tuple[int, ...],
+                    org_key: str = "",
                     _schema_version: str = ""):
-    """Cached wrapper around compute_core_metrics.
+    """Cached wrapper around compute_core_metrics for ONE org.
 
     ``_schema_version`` is a cache-bust key: Streamlit's @st.cache_data
     hashes THIS function's source, not the transitive call graph, so
     changes inside compute_core_metrics (e.g. adding fields to
     MetricResult) don't invalidate the cache on their own. Passing the
-    dashboard's __version__ forces a fresh run every release, which
-    prevents v26.5 pickled MetricResults from bleeding into v26.6 code
-    and throwing AttributeError on the new fields.
+    dashboard's __version__ forces a fresh run every release.
+
+    For multi-org aggregation see ``fetch_multi_org_metrics``.
     """
-    del _schema_version  # only used as a cache-bust key
-    client = get_client()
+    del _schema_version
+    client = get_client(org_key)
     dr = resolve_preset(preset, start, end)
-    types = cached_appointment_types()
+    types = cached_appointment_types(org_key)
     result = compute_core_metrics(
         client, dr, types,
         business_ids=list(business_ids) if business_ids else None,
         practitioner_ids=list(practitioner_ids) if practitioner_ids else None,
     )
     return result, dr
+
+
+def fetch_multi_org_metrics(preset: str, start: date | None, end: date | None,
+                              business_ids: tuple[int, ...],
+                              practitioner_ids: tuple[int, ...],
+                              selected_org_keys: tuple[str, ...],
+                              schema_version: str = ""):
+    """Fan out ``cached_metrics`` across each selected org and merge the
+    results. Each DataFrame field on MetricResult is concatenated, so
+    practitioners from different Cliniko orgs flow into one combined view.
+    Errors from one org don't block the others — they're surfaced as
+    sidebar warnings by the caller."""
+    from dashboard.metrics import MetricResult
+    merged: MetricResult | None = None
+    merged_dr = None
+    errors: dict[str, str] = {}
+
+    for org_key in selected_org_keys:
+        try:
+            result, dr = cached_metrics(
+                preset, start, end,
+                business_ids, practitioner_ids,
+                org_key=org_key,
+                _schema_version=schema_version,
+            )
+            merged_dr = dr
+            if merged is None:
+                merged = result
+            else:
+                fields = {}
+                for name in merged.__dataclass_fields__:
+                    a = getattr(merged, name)
+                    b = getattr(result, name)
+                    if isinstance(a, pd.DataFrame) and isinstance(b, pd.DataFrame):
+                        fields[name] = pd.concat([a, b], ignore_index=True)
+                    else:
+                        fields[name] = a
+                merged = MetricResult(**fields)
+        except Exception as e:
+            errors[org_key] = f"{type(e).__name__}: {e}"
+
+    return merged, merged_dr, errors
+
+
+def fetch_multi_org_reference(selected_org_keys: tuple[str, ...]):
+    """Pull businesses + practitioners from each selected org and concat.
+    Returns (biz_df, practs_df)."""
+    biz_frames: list[pd.DataFrame] = []
+    pract_frames: list[pd.DataFrame] = []
+    for org_key in selected_org_keys:
+        try:
+            biz_frames.append(cached_businesses(org_key))
+            pract_frames.append(cached_practitioners(org_key))
+        except Exception:
+            continue
+    biz = pd.concat(biz_frames, ignore_index=True) if biz_frames else pd.DataFrame()
+    practs = pd.concat(pract_frames, ignore_index=True) if pract_frames else pd.DataFrame()
+    # De-duplicate on id (same practitioner can appear in multiple orgs if
+    # they're listed in each tenant — keep the first).
+    for df in (biz, practs):
+        if "id" in df.columns and not df.empty:
+            df.drop_duplicates(subset=["id"], keep="first", inplace=True)
+            df.reset_index(drop=True, inplace=True)
+    return biz, practs
 
 
 # -------------------------------------------------------------------
@@ -168,9 +240,11 @@ def sidebar_filters() -> dict:
         selected_clinic = "All clinics"
         selected_org_keys = [o.key for o in configured_orgs]
 
+    # v27.1 — Pull businesses + practitioners from every selected org so
+    # that the "Clinic" and "Practitioner" filters show the full combined
+    # roster, not just the default org's.
     try:
-        biz = cached_businesses()
-        practs = cached_practitioners()
+        biz, practs = fetch_multi_org_reference(tuple(selected_org_keys))
     except ClinikoError as e:
         st.sidebar.error(f"Cliniko error: {e}")
         biz, practs = pd.DataFrame(), pd.DataFrame()
@@ -288,12 +362,17 @@ def _merged_punct_df() -> pd.DataFrame:
 # Tab: Overview
 # -------------------------------------------------------------------
 def overview_tab(filters: dict):
+    from dashboard import __version__ as _v
+    selected_org_keys = tuple(filters.get("selected_org_keys") or [])
+    if not selected_org_keys:
+        st.error("No Cliniko orgs available — check CLINIKO_API_KEY* secrets.")
+        return
     try:
-        from dashboard import __version__ as _v
-        result, dr = cached_metrics(
+        result, dr, per_org_errors = fetch_multi_org_metrics(
             filters["preset"], filters["custom_start"], filters["custom_end"],
             tuple(filters["business_ids"]), tuple(filters["practitioner_ids"]),
-            _schema_version=_v,
+            selected_org_keys,
+            schema_version=_v,
         )
     except ClinikoError as e:
         st.error(f"Cliniko error: {e}")
@@ -301,6 +380,16 @@ def overview_tab(filters: dict):
     except RuntimeError as e:
         st.error(str(e))
         return
+
+    if result is None:
+        st.error("No orgs returned data.")
+        if per_org_errors:
+            for k, v in per_org_errors.items():
+                st.error(f"{k}: {v}")
+        return
+    if per_org_errors:
+        for k, v in per_org_errors.items():
+            st.warning(f"{k} skipped: {v}")
 
     st.caption(f"Range: **{dr.label()}** (tz: {load_settings()['timezone']})")
 
