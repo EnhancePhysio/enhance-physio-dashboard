@@ -28,6 +28,7 @@ from dashboard.config import dashboard_password, load_settings
 from dashboard.date_ranges import PRESETS, resolve_preset
 from dashboard import kpi_sync
 from dashboard.trends import trends_tab
+from dashboard.managers import managers_tab
 from dashboard.manual import (
     aggregate_nps_from_individual_scores,
     extract_punctuality_from_image, load_nps, load_punctuality,
@@ -1469,9 +1470,9 @@ def main() -> None:
 
     filters = sidebar_filters()
 
-    (tab_overview, tab_admin, tab_trends, tab_injuries, tab_review,
+    (tab_overview, tab_admin, tab_trends, tab_managers, tab_injuries, tab_review,
      tab_commission, tab_diag) = st.tabs(
-        ["Overview", "📥 Admin tool data", "📈 Trends", "🩻 Injuries",
+        ["Overview", "📥 Admin tool data", "📈 Trends", "👥 Manager KPIs", "🩻 Injuries",
          "🩺 Clinical Review", "💰 Commission", "🔧 Diagnostics"]
     )
     with tab_overview:
@@ -1480,6 +1481,8 @@ def main() -> None:
         admin_tool_tab(filters)
     with tab_trends:
         trends_tab(filters)
+    with tab_managers:
+        managers_tab(filters)
     with tab_injuries:
         injuries_tab(filters)
     with tab_review:
