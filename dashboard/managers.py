@@ -230,9 +230,25 @@ def _clinic_audit_pct_for_quarter(clinic: str, year: int, q: int) -> float | Non
     return round(100.0 * sub["score_y"].sum() / denom, 1)
 
 
+def _business_ids_for_clinic(snap: dict, clinic: str) -> set[str]:
+    """Resolve clinic name (e.g. "Albury") → the Cliniko business_id(s) that
+    match. We check the reference.businesses records across every org, matching
+    on business_name or label containing the clinic token (case-insensitive).
+    Returns a set of ids as strings (snapshot ids are serialised as strings)."""
+    ids: set[str] = set()
+    needle = clinic.lower()
+    for org_data in snap.get("organizations", {}).values():
+        for b in (org_data.get("reference") or {}).get("businesses", []) or []:
+            label = str(b.get("label") or b.get("business_name") or "").lower()
+            if needle in label and b.get("id") is not None:
+                ids.add(str(b["id"]))
+    return ids
+
+
 def _clinic_cxdna_for_quarter(clinic: str, year: int, q: int) -> float | None:
-    """Cx + DNA combined % for the clinic across the quarter, averaged
-    monthly from snapshots."""
+    """Cx + DNA combined % for ONE clinic (business) across the quarter.
+    Rebuilt from the snapshot's raw ``appointments`` table so Albury,
+    Wodonga and Lavington get their own rates (not a merged AW figure)."""
     from dashboard.snapshots import load_snapshot
     start, end = quarter_bounds(year, q)
     months = []
@@ -242,25 +258,30 @@ def _clinic_cxdna_for_quarter(clinic: str, year: int, q: int) -> float | None:
         m += 1
         if m == 13:
             m = 1; y += 1
-    rates: list[float] = []
+
+    scheduled = cancelled = dna = 0
+    any_data = False
     for (yy, mm) in months:
         snap = load_snapshot(yy, mm)
         if not snap:
             continue
+        biz_ids = _business_ids_for_clinic(snap, clinic)
+        if not biz_ids:
+            continue
         for org_data in snap.get("organizations", {}).values():
-            metrics = (org_data.get("metrics") or {})
-            # cx_dna has practitioner_id + rate; utilisation_by_clinic has business_id.
-            # Easiest: average the per-practitioner cx_dna_combined_rate for the clinic's
-            # practitioners. We don't have clinic→practitioner mapping here cheaply, so
-            # fall back to the clinic util table's cx_dna if present.
-            for rec in metrics.get("cx_dna", []) or []:
-                r = rec.get("cx_dna_combined_rate")
-                if r is None: continue
-                try: rates.append(float(r))
-                except Exception: pass
-    if not rates:
+            appts = (org_data.get("metrics") or {}).get("appointments", []) or []
+            for a in appts:
+                if str(a.get("business_id")) not in biz_ids:
+                    continue
+                scheduled += 1
+                if a.get("cancelled_at"):
+                    cancelled += 1
+                if a.get("did_not_arrive") in (True, "True", "true", 1, "1"):
+                    dna += 1
+                any_data = True
+    if not any_data or scheduled == 0:
         return None
-    return round(100.0 * sum(rates) / len(rates), 1)
+    return round(100.0 * (cancelled + dna) / scheduled, 1)
 
 
 def _clinic_consults_for_quarter(clinic: str, year: int, q: int) -> int | None:
@@ -296,6 +317,47 @@ def _consult_growth_yoy(clinic: str, year: int, q: int) -> float | None:
     """YoY % growth of individual consults delivered, this quarter vs the same quarter last year."""
     this = _clinic_consults_for_quarter(clinic, year, q)
     last = _clinic_consults_for_quarter(clinic, year - 1, q)
+    if not this or not last:
+        return None
+    return round(100.0 * (this - last) / last, 1)
+
+
+def _clinic_service_hours_for_quarter(clinic: str, year: int, q: int) -> float | None:
+    """Sum of billable service hours across all months in the quarter.
+    Reads from monthly snapshots. (We don't currently split by clinic in
+    the snapshot per-practitioner table, so this aggregates every org — the
+    caller is expected to be looking at a specific clinic, which in practice
+    means one org.)"""
+    from dashboard.snapshots import load_snapshot
+    start, end = quarter_bounds(year, q)
+    months = []
+    y, m = start.year, start.month
+    while date(y, m, 1) <= end:
+        months.append((y, m))
+        m += 1
+        if m == 13:
+            m = 1; y += 1
+    total = 0.0
+    any_data = False
+    for (yy, mm) in months:
+        snap = load_snapshot(yy, mm)
+        if not snap:
+            continue
+        for org_data in snap.get("organizations", {}).values():
+            metrics = (org_data.get("metrics") or {})
+            for rec in metrics.get("service_hours", []) or []:
+                v = rec.get("service_hours")
+                if v is None: continue
+                try:
+                    total += float(v); any_data = True
+                except Exception: pass
+    return total if any_data else None
+
+
+def _service_hours_growth_yoy(clinic: str, year: int, q: int) -> float | None:
+    """YoY % growth of billable service hours, same quarter vs last year."""
+    this = _clinic_service_hours_for_quarter(clinic, year, q)
+    last = _clinic_service_hours_for_quarter(clinic, year - 1, q)
     if not this or not last:
         return None
     return round(100.0 * (this - last) / last, 1)
@@ -354,8 +416,8 @@ KPI_SPECS: list[dict[str, Any]] = [
     },
     {
         "key": "consult_growth",
-        "title": "Consult Growth",
-        "target_text": "≥5% YoY growth (individual consults, excl groups)",
+        "title": "Growth",
+        "target_text": "≥5% YoY on consults OR service hours (either qualifies)",
         "mode": "auto",
     },
     {
@@ -367,7 +429,7 @@ KPI_SPECS: list[dict[str, Any]] = [
     {
         "key": "recall_effectiveness",
         "title": "Recall Effectiveness",
-        "target_text": "Recalls >90% · Conversion >20%",
+        "target_text": "Recalls ≥90% · Conversion ≥20%",
         "mode": "self",
         "subfields": [
             ("recalls_pct",    "Recalls completed (%)", "pct"),
@@ -465,13 +527,20 @@ def _evaluate_kpi(spec: dict, df: pd.DataFrame, manager: str, clinic: str,
                 "detail": f"Score: {score:.0f}%/80%" if score is not None else "Not entered yet"}
 
     if k == "consult_growth":
-        growth = _consult_growth_yoy(clinic, year, q)
-        if growth is None:
+        cg = _consult_growth_yoy(clinic, year, q)
+        sg = _service_hours_growth_yoy(clinic, year, q)
+        if cg is None and sg is None:
             return {"status": "pending",
                     "detail": "Need snapshots for this quarter AND the same quarter last year."}
-        ok = growth >= 5.0
-        return {"status": "met" if ok else "missed",
-                "detail": f"YoY {growth:+.1f}% / target ≥5%"}
+        cg_ok = cg is not None and cg >= 5.0
+        sg_ok = sg is not None and sg >= 5.0
+        bits = []
+        bits.append(("✅" if cg_ok else "❌") + " "
+                     + (f"Consults YoY {cg:+.1f}%" if cg is not None else "Consults YoY —"))
+        bits.append(("✅" if sg_ok else "❌") + " "
+                     + (f"Service hrs YoY {sg:+.1f}%" if sg is not None else "Service hrs YoY —"))
+        return {"status": "met" if (cg_ok or sg_ok) else "missed",
+                "detail": " · ".join(bits)}
 
     if k == "cx_dna":
         rate = _clinic_cxdna_for_quarter(clinic, year, q)
@@ -485,8 +554,8 @@ def _evaluate_kpi(spec: dict, df: pd.DataFrame, manager: str, clinic: str,
     if k == "recall_effectiveness":
         r = _as_float(_get(df, manager, quarter, k, "recalls_pct"))
         c = _as_float(_get(df, manager, quarter, k, "conversion_pct"))
-        r_ok = r is not None and r > 90
-        c_ok = c is not None and c > 20
+        r_ok = r is not None and r >= 90
+        c_ok = c is not None and c >= 20
         bits = [
             ("✅" if r_ok else "❌") + f" Recalls {r:.0f}%/90%" if r is not None else "❌ Recalls: —",
             ("✅" if c_ok else "❌") + f" Convert {c:.0f}%/20%" if c is not None else "❌ Convert: —",
