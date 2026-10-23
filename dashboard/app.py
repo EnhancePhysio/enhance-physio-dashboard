@@ -105,6 +105,7 @@ def cached_appointment_types(org_key: str = "") -> pd.DataFrame:
 def cached_metrics(preset: str, start: date | None, end: date | None,
                     business_ids: tuple[int, ...], practitioner_ids: tuple[int, ...],
                     org_key: str = "",
+                    exclude_practitioner_ids: tuple = (),
                     _schema_version: str = ""):
     """Cached wrapper around compute_core_metrics for ONE org.
 
@@ -113,6 +114,9 @@ def cached_metrics(preset: str, start: date | None, end: date | None,
     changes inside compute_core_metrics (e.g. adding fields to
     MetricResult) don't invalidate the cache on their own. Passing the
     dashboard's __version__ forces a fresh run every release.
+
+    ``exclude_practitioner_ids`` — practitioners filtered out of EVERY
+    aggregate (clinic utilisation, days worked, etc.), not just the matrix.
 
     For multi-org aggregation see ``fetch_multi_org_metrics``.
     """
@@ -124,6 +128,7 @@ def cached_metrics(preset: str, start: date | None, end: date | None,
         client, dr, types,
         business_ids=list(business_ids) if business_ids else None,
         practitioner_ids=list(practitioner_ids) if practitioner_ids else None,
+        exclude_practitioner_ids=list(exclude_practitioner_ids) if exclude_practitioner_ids else None,
     )
     return result, dr
 
@@ -132,6 +137,7 @@ def fetch_multi_org_metrics(preset: str, start: date | None, end: date | None,
                               business_ids: tuple[int, ...],
                               practitioner_ids: tuple[int, ...],
                               selected_org_keys: tuple[str, ...],
+                              exclude_practitioner_ids: tuple = (),
                               schema_version: str = ""):
     """Fan out ``cached_metrics`` across each selected org and merge the
     results. Each DataFrame field on MetricResult is concatenated, so
@@ -149,6 +155,7 @@ def fetch_multi_org_metrics(preset: str, start: date | None, end: date | None,
                 preset, start, end,
                 business_ids, practitioner_ids,
                 org_key=org_key,
+                exclude_practitioner_ids=exclude_practitioner_ids,
                 _schema_version=schema_version,
             )
             merged_dr = dr
@@ -513,6 +520,22 @@ def overview_tab(filters: dict):
             dr = snap_dr
             data_source = f"snapshot (partial — missing: {', '.join(missing)})"
 
+    # Resolve exclusions once — need the Cliniko ids for the practitioner
+    # labels listed in settings.yml. The filters["practitioners"] df is
+    # already the merged roster from fetch_multi_org_reference, but THAT
+    # already dropped exclusions. We need the UNFILTERED roster to find
+    # their ids. Re-fetch here to resolve.
+    all_practs_frames = []
+    for ok in selected_org_keys:
+        try:
+            all_practs_frames.append(cached_practitioners(ok))
+        except Exception:
+            pass
+    all_practs = pd.concat(all_practs_frames, ignore_index=True) if all_practs_frames else pd.DataFrame()
+    if "id" in all_practs.columns and not all_practs.empty:
+        all_practs = all_practs.drop_duplicates(subset=["id"], keep="first").reset_index(drop=True)
+    excluded_ids = _excluded_practitioner_ids(all_practs)
+
     if result is None:
         # Live path: current month OR no snapshot yet for the chosen past month.
         try:
@@ -520,6 +543,7 @@ def overview_tab(filters: dict):
                 filters["preset"], filters["custom_start"], filters["custom_end"],
                 tuple(filters["business_ids"]), tuple(filters["practitioner_ids"]),
                 selected_org_keys,
+                exclude_practitioner_ids=tuple(excluded_ids),
                 schema_version=_v,
             )
         except ClinikoError as e:
@@ -550,10 +574,11 @@ def overview_tab(filters: dict):
         for k, v in per_org_errors.items():
             st.warning(f"{k} skipped: {v}")
 
-    # v27.3 — remove excluded practitioners from every metric table so they
-    # don't appear in KPIs, matrix, scored table or utilisation rollups.
-    excluded_ids = _excluded_practitioner_ids(filters["practitioners"])
-    result = _drop_excluded_from_metric_result(result, excluded_ids)
+    # v27.3 — if the data came from a snapshot (which was captured BEFORE
+    # exclusions were configured), strip excluded practitioners now. Live
+    # fetches already filtered at source via compute_core_metrics.
+    if data_source != "live":
+        result = _drop_excluded_from_metric_result(result, excluded_ids)
 
     st.caption(f"Data source: **{data_source}**")
 

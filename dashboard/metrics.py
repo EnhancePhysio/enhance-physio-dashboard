@@ -1106,18 +1106,34 @@ class MetricResult:
 
 def compute_core_metrics(client: ClinikoClient, dr: DateRange, appt_types: pd.DataFrame,
                           business_ids: list[int] | None = None,
-                          practitioner_ids: list[int] | None = None) -> MetricResult:
+                          practitioner_ids: list[int] | None = None,
+                          exclude_practitioner_ids: list | None = None) -> MetricResult:
     """Pull every metric for the given range. New-patients is cheap now
     (one extra call to /patients with a created_at filter), so it's always
     computed — PVA depends on it.
 
     v26.6: white-window cells are computed once and reused for utilisation,
     clinic utilisation, and service_hours/days_worked.
+
+    v27.3: ``exclude_practitioner_ids`` strips rows for those practitioners
+    from appointments AND the white-window cells before any aggregation, so
+    the clinic utilisation rollup, days-worked totals and KPI cards all
+    reflect the exclusion (not just the per-practitioner matrix).
     """
     appts = fetch_appointments(client, dr, business_ids, practitioner_ids)
+
+    # v27.3 — Drop excluded practitioners from the appointments table so
+    # every downstream aggregate ignores them.
+    if exclude_practitioner_ids and not appts.empty and "practitioner_id" in appts.columns:
+        exc = {str(p) for p in exclude_practitioner_ids}
+        appts = appts[~appts["practitioner_id"].astype(str).isin(exc)].reset_index(drop=True)
+
     np_df = new_patients(client, appts, dr, appt_types)
 
     cells = _compute_white_windows(client, appts, dr)
+    if exclude_practitioner_ids and not cells.empty and "practitioner_id" in cells.columns:
+        exc = {str(p) for p in exclude_practitioner_ids}
+        cells = cells[~cells["practitioner_id"].astype(str).isin(exc)].reset_index(drop=True)
     ws_map = white_space_hours_map(cells)
     ws_df = pd.DataFrame(
         [{"practitioner_id": pid, "white_space_hours": hrs} for pid, hrs in ws_map.items()],
