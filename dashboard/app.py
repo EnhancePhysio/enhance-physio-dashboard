@@ -170,6 +170,43 @@ def fetch_multi_org_metrics(preset: str, start: date | None, end: date | None,
     return merged, merged_dr, errors
 
 
+def _excluded_practitioner_name_patterns() -> list[str]:
+    """Return the list of practitioner-name substrings to exclude, lowercased.
+    Read fresh each call so a settings.yml edit propagates after a Streamlit
+    rerun without needing to clear caches."""
+    raw = load_settings().get("excluded_practitioners") or []
+    return [str(x).strip().lower() for x in raw if str(x).strip()]
+
+
+def _excluded_practitioner_ids(practs: pd.DataFrame) -> set:
+    """Resolve the exclusion patterns against a practitioners DataFrame and
+    return the matching Cliniko practitioner ids (as a set)."""
+    patterns = _excluded_practitioner_name_patterns()
+    if not patterns or practs.empty or "label" not in practs.columns:
+        return set()
+    labels = practs["label"].astype(str).str.lower()
+    mask = pd.Series(False, index=practs.index)
+    for pat in patterns:
+        mask = mask | labels.str.contains(pat, regex=False, na=False)
+    return set(practs.loc[mask, "id"].tolist())
+
+
+def _drop_excluded_from_metric_result(result, excluded_ids: set):
+    """Strip rows with practitioner_id in excluded_ids from every DataFrame
+    field on a MetricResult. Returns a NEW MetricResult (immutable semantics)."""
+    if not excluded_ids or result is None:
+        return result
+    from dashboard.metrics import MetricResult
+    fields = {}
+    for name in result.__dataclass_fields__:
+        v = getattr(result, name)
+        if isinstance(v, pd.DataFrame) and "practitioner_id" in v.columns and not v.empty:
+            fields[name] = v[~v["practitioner_id"].isin(excluded_ids)].reset_index(drop=True)
+        else:
+            fields[name] = v
+    return MetricResult(**fields)
+
+
 def metric_result_from_snapshot_org(snap: dict, org_key: str):
     """Reconstruct a per-org MetricResult from a snapshot's records.
     Mirror of ``create_snapshot``'s _df_to_records loop."""
@@ -237,6 +274,10 @@ def fetch_multi_org_reference(selected_org_keys: tuple[str, ...]):
         if "id" in df.columns and not df.empty:
             df.drop_duplicates(subset=["id"], keep="first", inplace=True)
             df.reset_index(drop=True, inplace=True)
+    # v27.3 — drop configured exclusions so they never appear in dropdowns.
+    excluded = _excluded_practitioner_ids(practs)
+    if excluded and "id" in practs.columns:
+        practs = practs[~practs["id"].isin(excluded)].reset_index(drop=True)
     return biz, practs
 
 
@@ -508,6 +549,11 @@ def overview_tab(filters: dict):
     if per_org_errors:
         for k, v in per_org_errors.items():
             st.warning(f"{k} skipped: {v}")
+
+    # v27.3 — remove excluded practitioners from every metric table so they
+    # don't appear in KPIs, matrix, scored table or utilisation rollups.
+    excluded_ids = _excluded_practitioner_ids(filters["practitioners"])
+    result = _drop_excluded_from_metric_result(result, excluded_ids)
 
     st.caption(f"Data source: **{data_source}**")
 
