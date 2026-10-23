@@ -170,6 +170,54 @@ def fetch_multi_org_metrics(preset: str, start: date | None, end: date | None,
     return merged, merged_dr, errors
 
 
+def metric_result_from_snapshot_org(snap: dict, org_key: str):
+    """Reconstruct a per-org MetricResult from a snapshot's records.
+    Mirror of ``create_snapshot``'s _df_to_records loop."""
+    from dashboard.metrics import MetricResult
+    org = snap.get("organizations", {}).get(org_key, {})
+    metrics = org.get("metrics") or {}
+    kwargs = {}
+    for name in MetricResult.__dataclass_fields__:
+        recs = metrics.get(name, [])
+        if isinstance(recs, list) and recs:
+            kwargs[name] = pd.DataFrame(recs)
+        else:
+            kwargs[name] = pd.DataFrame()
+    return MetricResult(**kwargs)
+
+
+def fetch_from_snapshot(selected_org_keys: tuple[str, ...], year: int, month: int):
+    """Try to load a merged MetricResult for the given month from the saved
+    snapshot. Returns (result, dr, missing_orgs). ``result`` is None if the
+    snapshot file doesn't exist. ``missing_orgs`` lists orgs that were
+    requested but absent from the snapshot — the caller can decide whether
+    to supplement with a live fetch for those."""
+    from dashboard.metrics import MetricResult
+    from dashboard.snapshots import load_snapshot, _month_range
+    snap = load_snapshot(year, month)
+    if snap is None:
+        return None, None, list(selected_org_keys)
+    dr = _month_range(year, month)
+    merged: MetricResult | None = None
+    missing: list[str] = []
+    for org_key in selected_org_keys:
+        if org_key not in snap.get("organizations", {}):
+            missing.append(org_key)
+            continue
+        part = metric_result_from_snapshot_org(snap, org_key)
+        if merged is None:
+            merged = part
+        else:
+            merged = MetricResult(**{
+                name: pd.concat(
+                    [getattr(merged, name), getattr(part, name)], ignore_index=True
+                ) if isinstance(getattr(merged, name), pd.DataFrame)
+                else getattr(merged, name)
+                for name in merged.__dataclass_fields__
+            })
+    return merged, dr, missing
+
+
 def fetch_multi_org_reference(selected_org_keys: tuple[str, ...]):
     """Pull businesses + practitioners from each selected org and concat.
     Returns (biz_df, practs_df)."""
@@ -197,18 +245,44 @@ def fetch_multi_org_reference(selected_org_keys: tuple[str, ...]):
 # -------------------------------------------------------------------
 def sidebar_filters() -> dict:
     st.sidebar.title("Filters")
-    preset_keys = [k for k, _ in PRESETS]
-    preset_labels = {k: label for k, label in PRESETS}
-    preset = st.sidebar.selectbox(
-        "Date range", preset_keys,
-        format_func=lambda k: preset_labels[k],
-        index=1,  # last 30 by default
+
+    # v27.2 — Calendar-month picker. Dropdown of 13 months (current +
+    # last 12 complete). Past months read from monthly snapshots if
+    # available (instant); current month hits Cliniko live.
+    today = date.today()
+    import calendar as _cal
+    def _month_options(n: int = 13) -> list[tuple[int, int]]:
+        """Return [(year, month), ...] newest-first for current + last n-1 months."""
+        y, m = today.year, today.month
+        out = [(y, m)]
+        for _ in range(n - 1):
+            m -= 1
+            if m == 0: m, y = 12, y - 1
+            out.append((y, m))
+        return out
+
+    month_options = _month_options(13)
+    month_labels = {
+        (y, m): (
+            f"{_cal.month_name[m]} {y}"
+            + (" (current)" if (y, m) == (today.year, today.month) else "")
+        )
+        for y, m in month_options
+    }
+    selected_month = st.sidebar.selectbox(
+        "Month", month_options,
+        format_func=lambda ym: month_labels[ym],
+        index=1,  # Default to last completed month (not current)
     )
-    custom_start = custom_end = None
-    if preset == "custom":
-        today = date.today()
-        custom_start = st.sidebar.date_input("Start", today - timedelta(days=30))
-        custom_end = st.sidebar.date_input("End", today)
+    sel_year, sel_month = selected_month
+    is_current_month = (sel_year, sel_month) == (today.year, today.month)
+
+    # Translate to the custom-range preset the rest of the code already
+    # understands. First-of-month → last-of-month.
+    custom_start = date(sel_year, sel_month, 1)
+    last_day = _cal.monthrange(sel_year, sel_month)[1]
+    custom_end = date(sel_year, sel_month, last_day)
+    preset = "custom"
 
     # v27.0 — Multi-org clinic selector. Sits ABOVE the per-org business
     # multiselect (which is Cliniko's own concept of "business" within
@@ -294,6 +368,11 @@ def sidebar_filters() -> dict:
         # v27.0 — multi-org filter
         "clinic_selection": selected_clinic,
         "selected_org_keys": selected_org_keys,
+        # v27.2 — month-picker metadata so overview_tab can prefer snapshots
+        # over live Cliniko fetches for completed past months.
+        "selected_year": sel_year,
+        "selected_month": sel_month,
+        "is_current_month": is_current_month,
     }
 
 
@@ -367,19 +446,58 @@ def overview_tab(filters: dict):
     if not selected_org_keys:
         st.error("No Cliniko orgs available — check CLINIKO_API_KEY* secrets.")
         return
-    try:
-        result, dr, per_org_errors = fetch_multi_org_metrics(
-            filters["preset"], filters["custom_start"], filters["custom_end"],
-            tuple(filters["business_ids"]), tuple(filters["practitioner_ids"]),
-            selected_org_keys,
-            schema_version=_v,
+
+    result = None
+    dr = None
+    per_org_errors: dict[str, str] = {}
+    data_source = "live"
+
+    # v27.2 — Past-month snapshot path. Current month always hits Cliniko
+    # live. Completed past months try the monthly snapshot first — the
+    # payload is instant to load.
+    is_current = filters.get("is_current_month", True)
+    sel_year = filters.get("selected_year")
+    sel_month = filters.get("selected_month")
+    if not is_current and sel_year and sel_month:
+        snap_result, snap_dr, missing = fetch_from_snapshot(
+            selected_org_keys, sel_year, sel_month,
         )
-    except ClinikoError as e:
-        st.error(f"Cliniko error: {e}")
-        return
-    except RuntimeError as e:
-        st.error(str(e))
-        return
+        if snap_result is not None and not missing:
+            result = snap_result
+            dr = snap_dr
+            data_source = f"snapshot ({sel_year}-{sel_month:02d})"
+        elif snap_result is not None and missing:
+            # Partial snapshot — use what's there, note the gap.
+            result = snap_result
+            dr = snap_dr
+            data_source = f"snapshot (partial — missing: {', '.join(missing)})"
+
+    if result is None:
+        # Live path: current month OR no snapshot yet for the chosen past month.
+        try:
+            result, dr, per_org_errors = fetch_multi_org_metrics(
+                filters["preset"], filters["custom_start"], filters["custom_end"],
+                tuple(filters["business_ids"]), tuple(filters["practitioner_ids"]),
+                selected_org_keys,
+                schema_version=_v,
+            )
+        except ClinikoError as e:
+            st.error(f"Cliniko error: {e}")
+            return
+        except RuntimeError as e:
+            st.error(str(e))
+            return
+
+        # Offer to snapshot the just-fetched past month so next time it's instant.
+        if result is not None and not is_current and sel_year and sel_month:
+            if st.button(f"📸 Save snapshot for {sel_year}-{sel_month:02d}",
+                           key=f"save_snap_{sel_year}_{sel_month}"):
+                try:
+                    from dashboard.snapshots import create_snapshot
+                    create_snapshot(sel_year, sel_month)
+                    st.success(f"Snapshot saved for {sel_year}-{sel_month:02d}.")
+                except Exception as e:
+                    st.error(f"Snapshot failed: {e}")
 
     if result is None:
         st.error("No orgs returned data.")
@@ -390,6 +508,8 @@ def overview_tab(filters: dict):
     if per_org_errors:
         for k, v in per_org_errors.items():
             st.warning(f"{k} skipped: {v}")
+
+    st.caption(f"Data source: **{data_source}**")
 
     st.caption(f"Range: **{dr.label()}** (tz: {load_settings()['timezone']})")
 
