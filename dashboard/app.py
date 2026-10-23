@@ -310,7 +310,9 @@ def sidebar_filters() -> dict:
             out.append((y, m))
         return out
 
-    month_options = _month_options(13)
+    # v27.4b — go back 24 months so YoY snapshots can be captured for the
+    # Manager KPIs' Consult Growth KPI (needs same quarter last year).
+    month_options = _month_options(25)
     month_labels = {
         (y, m): (
             f"{_cal.month_name[m]} {y}"
