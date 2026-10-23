@@ -5,6 +5,18 @@
 timezone: Australia/Sydney
 financial_year_start_month: 7   # AU FY: Jul 1
 
+# v27.3 — Practitioners to exclude from EVERY calculation and dropdown.
+# Match is case-insensitive against the Cliniko practitioner label
+# (usually "Firstname Lastname"). Partial matches are OK — e.g. "Bel"
+# will exclude "Belinda Smith", "Bella Jones", etc. If that's too broad
+# use the full name. Removed practitioners are dropped before the
+# multi-org fan-out, so their metrics never flow into the matrix,
+# KPIs, trends or scorecards.
+excluded_practitioners:
+  - Jeremy Lin
+  - Bel
+  - Jessica Rayner
+
 # v27.0 — Multi-org Cliniko. Each business has its own Cliniko organisation
 # and API key. Data is fetched per-org and aggregated by the dashboard.
 # The `default: true` org is the fallback when no clinic filter is active
