@@ -583,6 +583,18 @@ def overview_tab(filters: dict):
     if data_source != "live":
         result = _drop_excluded_from_metric_result(result, excluded_ids)
 
+    # v27.5 — overlay admin-tool availability.csv onto utilisation and
+    # utilisation_by_clinic so clinics with messy Cliniko rosters don't
+    # read as artificially low. Falls back to Cliniko-roster numbers if
+    # no admin availability has been synced for the range.
+    try:
+        from dashboard.admin_utilisation import apply_admin_utilisation
+        _biz_df = filters.get("businesses")
+        _pract_df = all_practs if "all_practs" in dir() else filters.get("practitioners")
+        result = apply_admin_utilisation(result, dr, _pract_df, _biz_df)
+    except Exception as _e:
+        st.warning(f"Admin-availability utilisation override skipped: {_e}")
+
     st.caption(f"Data source: **{data_source}**")
 
     st.caption(f"Range: **{dr.label()}** (tz: {load_settings()['timezone']})")
