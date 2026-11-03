@@ -164,7 +164,12 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
         if denom <= 0:
             continue
         numer = per_pract_service.get(str(pid), 0.0)
-        util = min(1.0, numer / denom) if denom > 0 else None
+        # Guard against override producing 0 when service hours haven't come
+        # through yet. Skip the override in that case so the Cliniko-based
+        # value remains visible instead of a confusing 0%.
+        if numer <= 0:
+            continue
+        util = min(1.0, numer / denom)
         rows.append({"practitioner_id": pid, "utilisation": util})
     new_util = pd.DataFrame(rows, columns=["practitioner_id", "utilisation"])
 
@@ -182,20 +187,43 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
         if not biz_ids:
             continue
         numer = sum(sh_by_biz.get(bid, 0.0) for bid in biz_ids)
-        util = min(1.0, numer / denom) if denom > 0 else None
+        # Guard: skip override if we can't match service hours (keeps the
+        # Cliniko-roster value visible instead of a confusing 0%).
+        if numer <= 0:
+            continue
+        util = min(1.0, numer / denom)
         # One row per matching business so the existing per-clinic chart
         # (keyed on business_id) picks it up unchanged.
         for bid in biz_ids:
             clinic_rows.append({"business_id": bid, "utilisation": util})
     new_util_by_clinic = pd.DataFrame(clinic_rows, columns=["business_id", "utilisation"])
 
-    # ---- Rebuild MetricResult with overrides ----
+    # ---- Rebuild MetricResult with merge-over-base semantics ----
+    # Only override practitioners/clinics that have admin availability data.
+    # Everyone else keeps the Cliniko-roster-based number so they don't
+    # suddenly read as 0.
+    def _merge_override(base_df: pd.DataFrame | None, new_df: pd.DataFrame,
+                         key: str) -> pd.DataFrame:
+        if base_df is None or base_df.empty:
+            return new_df
+        if new_df.empty:
+            return base_df
+        base = base_df.copy()
+        base[key] = base[key].astype(str)
+        new_df = new_df.copy()
+        new_df[key] = new_df[key].astype(str)
+        overridden_keys = set(new_df[key].tolist())
+        keep = base[~base[key].isin(overridden_keys)]
+        return pd.concat([keep, new_df], ignore_index=True)
+
     fields = {}
     for name in result.__dataclass_fields__:
         if name == "utilisation":
-            fields[name] = new_util if not new_util.empty else getattr(result, name)
+            fields[name] = _merge_override(getattr(result, name), new_util,
+                                             "practitioner_id")
         elif name == "utilisation_by_clinic":
-            fields[name] = new_util_by_clinic if not new_util_by_clinic.empty else getattr(result, name)
+            fields[name] = _merge_override(getattr(result, name),
+                                             new_util_by_clinic, "business_id")
         else:
             fields[name] = getattr(result, name)
     return MetricResult(**fields)

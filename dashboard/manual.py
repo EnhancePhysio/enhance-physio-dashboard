@@ -79,6 +79,7 @@ NICKNAME_TO_FULL: dict[str, str] = {
     "ben": "benjamin",
     "mitch": "mitchell",
     "mackie": "mackenzie",
+    "rusha": "prathyusha",  # Mulgrave practitioner — admin tool uses "Rusha"
 }
 
 

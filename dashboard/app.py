@@ -595,6 +595,16 @@ def overview_tab(filters: dict):
     except Exception as _e:
         st.warning(f"Admin-availability utilisation override skipped: {_e}")
 
+    # v27.6 — pull per-practitioner audit scores from the admin tool so the
+    # Overview matrix shows audit_pct / audit_epc_pct / audit_private_pct.
+    # Resolved to Cliniko practitioner_id via the merged roster.
+    try:
+        from dashboard.admin_audits import admin_audit_dataframe
+        audit_df = admin_audit_dataframe(dr, filters.get("practitioners"))
+    except Exception as _e:
+        audit_df = None
+        st.warning(f"Admin audits merge skipped: {_e}")
+
     st.caption(f"Data source: **{data_source}**")
 
     st.caption(f"Range: **{dr.label()}** (tz: {load_settings()['timezone']})")
