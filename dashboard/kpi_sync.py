@@ -166,15 +166,33 @@ def adapt_nps(text: str) -> pd.DataFrame:
         return row.get("name", "")
 
     df["practitioner"] = df.apply(_prac_label, axis=1)
+    responses = pd.to_numeric(df.get("responses"), errors="coerce").fillna(0)
+    nps_val = pd.to_numeric(df.get("nps"), errors="coerce")
+
+    # v27.8 — The dashboard's nps_per_practitioner recomputes NPS from
+    # (promoters − detractors) / responses × 100. The admin tool only
+    # stores the final NPS score, so we reverse-engineer plausible
+    # promoter/detractor counts that reproduce the entered NPS when the
+    # dashboard runs the formula. Passives absorb the slack.
+    #   P − D = (nps / 100) × R
+    # Choose: P = max(P − D, 0) + passives/2, D = max(D − P, 0) + ...
+    # Simpler: for a positive NPS set D = 0, P = (nps/100) × R.
+    #          for a negative NPS set P = 0, D = (−nps/100) × R.
+    pd_product = (nps_val.fillna(0) / 100.0) * responses
+    promoters = pd_product.clip(lower=0).round().astype("Int64")
+    detractors = (-pd_product).clip(lower=0).round().astype("Int64")
+    passives = (responses - promoters.fillna(0).astype(float)
+                           - detractors.fillna(0).astype(float)).clip(lower=0).round().astype("Int64")
+
     out = pd.DataFrame({
         "week_starting": df["week_starting"],
         "clinic": df["clinic"].fillna(""),
         "practitioner": df["practitioner"].fillna(""),
-        "responses": pd.to_numeric(df.get("responses"), errors="coerce"),
-        "promoters": pd.NA,
-        "passives": pd.NA,
-        "detractors": pd.NA,
-        "nps": pd.to_numeric(df.get("nps"), errors="coerce"),
+        "responses": responses.astype("Int64"),
+        "promoters": promoters,
+        "passives": passives,
+        "detractors": detractors,
+        "nps": nps_val,
     })
     return out
 

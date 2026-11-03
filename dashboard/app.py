@@ -669,8 +669,8 @@ def overview_tab(filters: dict):
 
     # Audit — Cliniko-based audit removed in Phase 2. The dashboard now reads
     # audit scores from the admin tool's shared CSV via dashboard.kpi_sync.
-    # See the "Admin tool data" tab for the audit summary.
-    audit_df = None
+    # The admin-tool audit DataFrame was already resolved earlier in this
+    # function (v27.6); keep that value for the merge below.
 
     # Merge everything per-practitioner
     # Renames for punctuality + NPS
