@@ -87,13 +87,16 @@ def admin_audit_dataframe(dr, practitioners_df: pd.DataFrame) -> pd.DataFrame:
     merged["audit_epc_pct"] = merged["audit_epc_pct"].fillna(0.0)
     merged["audit_private_pct"] = merged["audit_private_pct"].fillna(0.0)
 
-    # Map name → Cliniko practitioner_id
+    # Map name → Cliniko practitioner_id using the dashboard's fuzzy
+    # resolver — handles first-name-only entries (e.g. admin tool has
+    # "Hamzeh" / "Jas" / "Isaac" while Cliniko labels are full names).
     if practitioners_df is None or practitioners_df.empty \
             or "label" not in practitioners_df.columns:
         return pd.DataFrame(columns=cols)
-    label_to_id = {str(l).strip().lower(): i
-                   for l, i in zip(practitioners_df["label"], practitioners_df["id"])}
-    merged["practitioner_id"] = merged["practitioner"].astype(str).str.strip().str.lower().map(label_to_id)
+    from dashboard.manual import build_practitioner_name_index, resolve_practitioner_id
+    idx = build_practitioner_name_index(practitioners_df, None)
+    merged["practitioner_id"] = merged["practitioner"].apply(
+        lambda n: resolve_practitioner_id(n, idx))
     merged = merged.dropna(subset=["practitioner_id"])
     if merged.empty:
         return pd.DataFrame(columns=cols)

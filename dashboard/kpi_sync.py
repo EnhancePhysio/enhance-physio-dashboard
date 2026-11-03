@@ -179,16 +179,16 @@ def adapt_nps(text: str) -> pd.DataFrame:
     # Simpler: for a positive NPS set D = 0, P = (nps/100) × R.
     #          for a negative NPS set P = 0, D = (−nps/100) × R.
     pd_product = (nps_val.fillna(0) / 100.0) * responses
-    promoters = pd_product.clip(lower=0).round().astype("Int64")
-    detractors = (-pd_product).clip(lower=0).round().astype("Int64")
-    passives = (responses - promoters.fillna(0).astype(float)
-                           - detractors.fillna(0).astype(float)).clip(lower=0).round().astype("Int64")
+    promoters = pd_product.clip(lower=0).fillna(0).round().astype(int)
+    detractors = (-pd_product).clip(lower=0).fillna(0).round().astype(int)
+    passives = (responses - promoters.astype(float)
+                           - detractors.astype(float)).clip(lower=0).fillna(0).round().astype(int)
 
     out = pd.DataFrame({
         "week_starting": df["week_starting"],
         "clinic": df["clinic"].fillna(""),
         "practitioner": df["practitioner"].fillna(""),
-        "responses": responses.astype("Int64"),
+        "responses": responses.astype(int),
         "promoters": promoters,
         "passives": passives,
         "detractors": detractors,
