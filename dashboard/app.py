@@ -498,6 +498,28 @@ def overview_tab(filters: dict):
         st.error("No Cliniko orgs available — check CLINIKO_API_KEY* secrets.")
         return
 
+    # v27.13 — explicit refresh button. _ensure_kpi_sync only runs once per
+    # Streamlit session, so if the admin team entered new availability /
+    # audits / NPS AFTER this tab was first loaded, the dashboard sits on
+    # stale CSVs and the admin-utilisation / audit overrides have nothing
+    # to match against. Clicking this re-pulls the latest from GitHub and
+    # clears Streamlit's result cache so the matrix rebuilds against fresh
+    # admin data.
+    _rc1, _rc2 = st.columns([1, 6])
+    with _rc1:
+        if st.button("🔄 Refresh admin data", key="overview_refresh_admin",
+                       help="Re-pull availability / audits / NPS from GitHub "
+                            "and rebuild the matrix. Use after the admin team "
+                            "enters new data."):
+            try:
+                kpi_sync.sync_now()
+                st.cache_data.clear()
+                st.session_state["_kpi_sync_done"] = True  # keep the flag
+                st.success("Admin data refreshed. Rerunning…")
+                st.rerun()
+            except Exception as _e:
+                st.error(f"Refresh failed: {type(_e).__name__}: {_e}")
+
     result = None
     dr = None
     per_org_errors: dict[str, str] = {}
