@@ -609,11 +609,13 @@ def overview_tab(filters: dict):
     # utilisation_by_clinic so clinics with messy Cliniko rosters don't
     # read as artificially low. Falls back to Cliniko-roster numbers if
     # no admin availability has been synced for the range.
+    _util_diag: dict = {}
     try:
         from dashboard.admin_utilisation import apply_admin_utilisation
         _biz_df = filters.get("businesses")
         _pract_df = all_practs if "all_practs" in dir() else filters.get("practitioners")
-        result = apply_admin_utilisation(result, dr, _pract_df, _biz_df)
+        result = apply_admin_utilisation(result, dr, _pract_df, _biz_df,
+                                            diagnostics=_util_diag)
     except Exception as _e:
         st.warning(f"Admin-availability utilisation override skipped: {_e}")
 
@@ -630,6 +632,44 @@ def overview_tab(filters: dict):
     st.caption(f"Data source: **{data_source}**")
 
     st.caption(f"Range: **{dr.label()}** (tz: {load_settings()['timezone']})")
+
+    # v27.13 — utilisation calc diagnostics. Shows per-practitioner and
+    # per-clinic numer (Cliniko service hrs) / denom (admin availability
+    # hrs) / resulting util %. Hidden expander so it doesn't clutter the
+    # main view but is one click away when a number looks wrong.
+    if _util_diag:
+        with st.expander("🔍 Utilisation calc diagnostics "
+                           "(click to inspect numer/denom per person & clinic)"):
+            st.caption(
+                "**util = Cliniko service hrs ÷ admin availability hrs**, "
+                "capped at 100%. If a row shows 100% it may be capped — "
+                "compare the two hour columns to see the real ratio."
+            )
+            if _util_diag.get("per_clinic"):
+                st.markdown("**Per clinic**")
+                st.dataframe(
+                    pd.DataFrame(_util_diag["per_clinic"]).assign(
+                        util_display=lambda d: d["util"].apply(
+                            lambda v: f"{v*100:.1f}%" if pd.notna(v) else "—"
+                        ),
+                        raw_ratio=lambda d: (d["cliniko_service_h"] / d["admin_hours"]).apply(
+                            lambda v: f"{v*100:.1f}%" if pd.notna(v) else "—"
+                        ),
+                    )[["clinic", "admin_hours", "cliniko_service_h",
+                        "util_display", "raw_ratio", "note", "biz_ids"]],
+                    use_container_width=True, hide_index=True,
+                )
+            if _util_diag.get("per_practitioner"):
+                st.markdown("**Per practitioner**")
+                st.dataframe(
+                    pd.DataFrame(_util_diag["per_practitioner"]).assign(
+                        util_display=lambda d: d["util"].apply(
+                            lambda v: f"{v*100:.1f}%" if pd.notna(v) else "—"
+                        ),
+                    )[["practitioner", "admin_hours", "cliniko_service_h",
+                        "util_display", "note", "resolved_id"]],
+                    use_container_width=True, hide_index=True,
+                )
 
     # Manual data — combine disk-loaded files with in-session uploads.
     # On Streamlit Cloud the filesystem is ephemeral and wipes on redeploy,

@@ -127,12 +127,18 @@ def _service_hours_by_business(result) -> dict[str, float]:
 # Main entry — overlay admin availability onto MetricResult
 # -------------------------------------------------------------------
 def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
-                              businesses_df: pd.DataFrame):
+                              businesses_df: pd.DataFrame,
+                              diagnostics: dict | None = None):
     """Return a NEW MetricResult with ``utilisation`` and
     ``utilisation_by_clinic`` recomputed from the admin tool's
     ``availability.csv`` hours. If no admin availability is present for
     the date range the result is returned unchanged (so the dashboard
-    falls back to Cliniko-roster-based numbers)."""
+    falls back to Cliniko-roster-based numbers).
+
+    If ``diagnostics`` is a dict, per-practitioner and per-clinic numer/
+    denom/util rows are stashed there under keys ``per_practitioner`` and
+    ``per_clinic`` so the caller can render them for Matt's eyeballing.
+    """
     if result is None:
         return result
     hours_df = admin_availability_hours(dr)
@@ -166,22 +172,35 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
     adm_by_pract = (hours_df.groupby("practitioner", as_index=False)
                              .agg(total_hours=("total_hours", "sum")))
     rows = []
+    diag_pract: list[dict] = []
     for _, r in adm_by_pract.iterrows():
         name = str(r["practitioner"]).strip()
         pid = _resolve(name)
+        diag_row = {"practitioner": name, "resolved_id": pid,
+                     "admin_hours": float(r["total_hours"])}
         if pid is None:
+            diag_row.update({"cliniko_service_h": None, "util": None,
+                               "note": "name unresolved"})
+            diag_pract.append(diag_row)
             continue  # practitioner isn't in Cliniko — ignore
         denom = float(r["total_hours"])
         if denom <= 0:
+            diag_row.update({"cliniko_service_h": None, "util": None,
+                               "note": "denom <= 0"})
+            diag_pract.append(diag_row)
             continue
         numer = per_pract_service.get(str(pid), 0.0)
-        # Guard against override producing 0 when service hours haven't come
-        # through yet. Skip the override in that case so the Cliniko-based
-        # value remains visible instead of a confusing 0%.
+        diag_row["cliniko_service_h"] = numer
         if numer <= 0:
+            diag_row.update({"util": None, "note": "numer <= 0 (fallback)"})
+            diag_pract.append(diag_row)
             continue
         util = min(1.0, numer / denom)
+        diag_row.update({"util": util, "note": "override applied"})
+        diag_pract.append(diag_row)
         rows.append({"practitioner_id": pid, "utilisation": util})
+    if diagnostics is not None:
+        diagnostics["per_practitioner"] = diag_pract
     new_util = pd.DataFrame(rows, columns=["practitioner_id", "utilisation"])
 
     # ---- Per-clinic ----
@@ -189,24 +208,40 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
     adm_by_clinic = (hours_df.groupby("clinic", as_index=False)
                                .agg(total_hours=("total_hours", "sum")))
     clinic_rows = []
+    diag_clinic: list[dict] = []
     for _, r in adm_by_clinic.iterrows():
         clinic = str(r["clinic"]).strip()
         denom = float(r["total_hours"])
+        diag_row = {"clinic": clinic, "admin_hours": denom}
         if denom <= 0:
+            diag_row.update({"biz_ids": "", "cliniko_service_h": None,
+                               "util": None, "note": "denom <= 0"})
+            diag_clinic.append(diag_row)
             continue
         biz_ids = _business_ids_for_clinic_name(businesses_df, clinic)
+        diag_row["biz_ids"] = ",".join(sorted(biz_ids))
         if not biz_ids:
+            diag_row.update({"cliniko_service_h": None, "util": None,
+                               "note": "no matching biz_id"})
+            diag_clinic.append(diag_row)
             continue
         numer = sum(sh_by_biz.get(bid, 0.0) for bid in biz_ids)
-        # Guard: skip override if we can't match service hours (keeps the
-        # Cliniko-roster value visible instead of a confusing 0%).
+        diag_row["cliniko_service_h"] = numer
         if numer <= 0:
+            diag_row.update({"util": None, "note": "numer <= 0 (fallback)"})
+            diag_clinic.append(diag_row)
             continue
         util = min(1.0, numer / denom)
+        diag_row.update({"util": util,
+                           "note": "override applied" + (" (capped at 100%)"
+                                                             if numer / denom > 1.0 else "")})
+        diag_clinic.append(diag_row)
         # One row per matching business so the existing per-clinic chart
         # (keyed on business_id) picks it up unchanged.
         for bid in biz_ids:
             clinic_rows.append({"business_id": bid, "utilisation": util})
+    if diagnostics is not None:
+        diagnostics["per_clinic"] = diag_clinic
     new_util_by_clinic = pd.DataFrame(clinic_rows, columns=["business_id", "utilisation"])
 
     # ---- Override days_worked + avg_hours_per_day from admin data ----
