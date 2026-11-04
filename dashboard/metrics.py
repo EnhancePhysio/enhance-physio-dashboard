@@ -396,9 +396,17 @@ def ppva(appts: pd.DataFrame, appt_types: pd.DataFrame) -> pd.DataFrame:
     exclude = settings["excluded_name_patterns"]
 
     types = appt_types.copy()
-    types["is_private"] = types["name"].apply(
-        lambda n: _match_any(n, include) and not _match_any(n, exclude)
-    )
+    has_include = types["name"].apply(lambda n: _match_any(n, include))
+    has_exclude = types["name"].apply(lambda n: _match_any(n, exclude))
+    types["is_private"] = has_include & ~has_exclude
+    # v27.9 — Fallback for orgs whose appointment types don't contain the
+    # "Private"/"EPC" tokens in their names (e.g. Mudgeeraba on the Gold
+    # Coast — purely private practice, so Cliniko types are just
+    # "Physiotherapy Initial"/"Standard" with no Private tag). In that
+    # case treat "not excluded" (i.e. not NDIS/DVA/WorkCover/TAC) as
+    # private so PPVA still computes per practitioner.
+    if not types["is_private"].any():
+        types["is_private"] = ~has_exclude
     types["is_initial"] = types["name"].str.contains("initial", case=False, na=False)
     private_ids = set(types.loc[types["is_private"], "id"])
     initial_private_ids = set(types.loc[types["is_private"] & types["is_initial"], "id"])

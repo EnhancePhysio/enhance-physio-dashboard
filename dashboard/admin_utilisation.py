@@ -46,17 +46,22 @@ def _range_bounds(dr) -> tuple[date, date]:
 # Admin availability → per-practitioner / per-clinic hours in range
 # -------------------------------------------------------------------
 def admin_availability_hours(dr) -> pd.DataFrame:
-    """Return a DataFrame of ``[practitioner, clinic, total_hours]`` for the
-    date range. Empty if the admin tool hasn't synced any availability.
+    """Return a DataFrame of ``[practitioner, clinic, total_hours, total_days]``
+    for the date range. Empty if the admin tool hasn't synced any availability.
 
     Status rows (off/leave/sick/ph/na) contribute 0 hours — the admin tool
     already encodes this (``hours`` is set to the clinical hours only).
+
+    ``total_days`` is the sum of the ``day_worked`` fractions the admin tool
+    emits per entry (≥6 hrs = 1, 1-5.9 hrs = 0.5, else 0). Used downstream to
+    override the Cliniko-based ``days_worked`` which is often inflated.
     """
     df = kpi_sync.load_admin_availability()
     if df.empty:
-        return pd.DataFrame(columns=["practitioner", "clinic", "total_hours"])
+        return pd.DataFrame(columns=["practitioner", "clinic", "total_hours", "total_days"])
     df = df.copy()
     df["hours"] = pd.to_numeric(df["hours"], errors="coerce").fillna(0)
+    df["day_worked"] = pd.to_numeric(df.get("day_worked"), errors="coerce").fillna(0)
     df["d"] = pd.to_datetime(df.get("date"), errors="coerce").dt.date
     df = df.dropna(subset=["d"])
 
@@ -64,10 +69,11 @@ def admin_availability_hours(dr) -> pd.DataFrame:
     if start is not None and end is not None:
         df = df[(df["d"] >= start) & (df["d"] <= end)]
     if df.empty:
-        return pd.DataFrame(columns=["practitioner", "clinic", "total_hours"])
+        return pd.DataFrame(columns=["practitioner", "clinic", "total_hours", "total_days"])
 
     grp = (df.groupby(["practitioner", "clinic"], as_index=False)
-             .agg(total_hours=("hours", "sum")))
+             .agg(total_hours=("hours", "sum"),
+                  total_days=("day_worked", "sum")))
     return grp[grp["total_hours"] > 0].reset_index(drop=True)
 
 
@@ -137,12 +143,17 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
 
     # ---- Per-practitioner ----
     # service_hours DataFrame already keys by practitioner_id.
-    # Map admin practitioner names → Cliniko ids via practitioners_df.label.
-    label_to_id = {}
-    if practitioners_df is not None and not practitioners_df.empty \
-            and "label" in practitioners_df.columns and "id" in practitioners_df.columns:
-        label_to_id = {str(l).strip().lower(): i
-                       for l, i in zip(practitioners_df["label"], practitioners_df["id"])}
+    # Map admin practitioner names → Cliniko ids via the fuzzy resolver so
+    # first-name-only entries and nicknames match the same way the audits
+    # and punctuality merges do.
+    from dashboard.manual import build_practitioner_name_index, resolve_practitioner_id
+    name_idx = build_practitioner_name_index(practitioners_df, None) \
+        if practitioners_df is not None and not practitioners_df.empty else {}
+
+    def _resolve(name: str) -> str | None:
+        if not name_idx:
+            return None
+        return resolve_practitioner_id(str(name), name_idx)
 
     sh = getattr(result, "service_hours", pd.DataFrame())
     if sh is None or sh.empty or "service_hours" not in sh.columns:
@@ -157,7 +168,7 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
     rows = []
     for _, r in adm_by_pract.iterrows():
         name = str(r["practitioner"]).strip()
-        pid = label_to_id.get(name.lower())
+        pid = _resolve(name)
         if pid is None:
             continue  # practitioner isn't in Cliniko — ignore
         denom = float(r["total_hours"])
@@ -198,6 +209,43 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
             clinic_rows.append({"business_id": bid, "utilisation": util})
     new_util_by_clinic = pd.DataFrame(clinic_rows, columns=["business_id", "utilisation"])
 
+    # ---- Override days_worked + avg_hours_per_day from admin data ----
+    # Cliniko-based days_worked derives from white_space_hours / 6.6 which
+    # over-counts for part-timers (admin/non-clinical blocks still add to
+    # white space). Admin tool stores a direct day_worked fraction per day
+    # (≥6 hrs = 1, 1-5.9 = ½, 0 = 0); the sum across the period is the
+    # ground truth. Rewriting here keeps service_hours (numerator) from
+    # Cliniko unchanged.
+    sh_df = getattr(result, "service_hours", None)
+    new_sh_df = None
+    if sh_df is not None and not sh_df.empty and name_idx:
+        days_by_pract = (hours_df.groupby("practitioner", as_index=False)
+                                    .agg(total_days=("total_days", "sum")))
+        day_overrides: dict[str, float] = {}
+        for _, r in days_by_pract.iterrows():
+            name = str(r["practitioner"]).strip()
+            pid = _resolve(name)
+            if pid is None:
+                continue
+            days = float(r["total_days"])
+            if days > 0:
+                day_overrides[str(pid)] = days
+        if day_overrides:
+            new_sh_df = sh_df.copy()
+            new_sh_df["practitioner_id"] = new_sh_df["practitioner_id"].astype(str)
+            # Apply override row-by-row so practitioners without admin data
+            # keep Cliniko-based days.
+            def _apply_days(row):
+                pid = str(row["practitioner_id"])
+                if pid in day_overrides:
+                    row["days_worked"] = day_overrides[pid]
+                    sh_hours = float(row.get("service_hours") or 0)
+                    row["avg_hours_per_day"] = (
+                        sh_hours / day_overrides[pid] if day_overrides[pid] > 0 else 0
+                    )
+                return row
+            new_sh_df = new_sh_df.apply(_apply_days, axis=1)
+
     # ---- Rebuild MetricResult with merge-over-base semantics ----
     # Only override practitioners/clinics that have admin availability data.
     # Everyone else keeps the Cliniko-roster-based number so they don't
@@ -224,6 +272,8 @@ def apply_admin_utilisation(result, dr, practitioners_df: pd.DataFrame,
         elif name == "utilisation_by_clinic":
             fields[name] = _merge_override(getattr(result, name),
                                              new_util_by_clinic, "business_id")
+        elif name == "service_hours" and new_sh_df is not None:
+            fields[name] = new_sh_df
         else:
             fields[name] = getattr(result, name)
     return MetricResult(**fields)
