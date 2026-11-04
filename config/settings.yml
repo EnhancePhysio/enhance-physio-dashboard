@@ -412,11 +412,21 @@ audit:
     - splint
     - hospital
 
-# PPVA — appointment types considered "private" (includes EPC)
+# PPVA — appointment types considered "private" (includes EPC).
+# Mudgeeraba's Cliniko types don't contain "Private"/"EPC" tokens (purely
+# private practice uses labels like "Accredited Physiotherapist Initial
+# Consultation" or "Senior Physiotherapist Subsequent"), so include
+# those explicitly. The dashboard also falls back to "anything not in
+# excluded_name_patterns is private" for any org where no type matches
+# the include list.
 ppva:
   private_name_patterns:
     - '(?i)private'
     - '(?i)EPC'
+    - '(?i)accredited physiotherapist'
+    - '(?i)senior physiotherapist'
+    - '(?i)exercise physiology'
+    - '(?i)medicare'                    # Medicare-funded EP / physio
   excluded_name_patterns:
     - '(?i)ndis'
     - '(?i)dva'
