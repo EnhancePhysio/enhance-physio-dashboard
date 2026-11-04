@@ -1286,4 +1286,60 @@ def merge_per_practitioner(result: MetricResult,
     for col, default in numeric_defaults.items():
         if col in base.columns:
             base[col] = base[col].fillna(default)
+
+    # v27.15 — collapse same-name practitioner records. Cliniko sometimes
+    # holds the same person as several practitioner records (one per
+    # business they work at, or one per org). Each record has its own
+    # slice of appointments which splits the matrix into 2-4 dots for one
+    # person. Collapse by label so there's one row per human:
+    #   * volume columns SUM (service_hours, consults, days_worked, …)
+    #   * rate columns are WEIGHTED by service_hours (so the dominant
+    #     record carries more weight) with a fallback mean when all
+    #     service_hours are 0
+    #   * punctuality / NPS / audit % and patient counts weighted by
+    #     service_hours too, which approximates "dominant record wins"
+    #   * practitioner_id = the record with the most service_hours (so
+    #     downstream joins for drill-downs still resolve)
+    if "label" in base.columns and base["label"].notna().any():
+        _volume_cols = [c for c in (
+            "service_hours", "consults_delivered", "new_patients",
+            "days_worked", "white_space_hours", "patients_audited",
+        ) if c in base.columns]
+        _rate_cols = [c for c in (
+            "pva", "ppva", "cx_rate", "dna_rate", "cx_dna_combined_rate",
+            "utilisation", "notes_completion", "punctuality_within_15",
+            "audit_pct", "audit_epc_pct", "audit_private_pct", "nps", "nps_raw",
+        ) if c in base.columns]
+        if base["label"].duplicated().any():
+            collapsed_rows: list[dict[str, Any]] = []
+            for label_value, group in base.groupby("label", sort=False):
+                if len(group) == 1:
+                    collapsed_rows.append(group.iloc[0].to_dict())
+                    continue
+                # Representative row = max service hours (or first if tied).
+                if "service_hours" in group.columns and group["service_hours"].notna().any():
+                    rep = group.sort_values("service_hours", ascending=False).iloc[0]
+                else:
+                    rep = group.iloc[0]
+                row: dict[str, Any] = {c: rep[c] for c in group.columns}
+                for c in _volume_cols:
+                    row[c] = float(group[c].fillna(0).sum())
+                weights = (group["service_hours"].fillna(0)
+                            if "service_hours" in group.columns else None)
+                for c in _rate_cols:
+                    vals = group[c]
+                    mask = vals.notna()
+                    if weights is not None and weights[mask].sum() > 0 and mask.any():
+                        row[c] = float((vals[mask] * weights[mask]).sum()
+                                         / weights[mask].sum())
+                    elif mask.any():
+                        row[c] = float(vals[mask].mean())
+                    else:
+                        row[c] = float("nan") if c in ("nps", "nps_raw") else 0.0
+                if row.get("days_worked"):
+                    row["avg_hours_per_day"] = row["service_hours"] / row["days_worked"]
+                else:
+                    row["avg_hours_per_day"] = 0.0
+                collapsed_rows.append(row)
+            base = pd.DataFrame(collapsed_rows, columns=base.columns).reset_index(drop=True)
     return base
