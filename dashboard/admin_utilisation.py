@@ -80,14 +80,28 @@ def admin_availability_hours(dr) -> pd.DataFrame:
 # -------------------------------------------------------------------
 # Clinic name → business_id resolution via the Cliniko businesses frame.
 # -------------------------------------------------------------------
+# Admin-tool clinic names → extra substrings to check against the Cliniko
+# business label. Lets Mulgrave resolve to "Enhance Physio Waverley Park"
+# etc. Keys and values are lower-cased.
+CLINIC_NAME_ALIASES: dict[str, tuple[str, ...]] = {
+    "mulgrave": ("waverley park", "mulgrave"),
+    "mudgeeraba": ("mudgeeraba",),
+    "albury": ("albury",),
+    "wodonga": ("wodonga",),
+    "lavington": ("lavington",),
+    "thurgoona": ("thurgoona",),
+}
+
+
 def _business_ids_for_clinic_name(businesses_df: pd.DataFrame, clinic: str) -> set[str]:
     if businesses_df is None or businesses_df.empty:
         return set()
     needle = clinic.strip().lower()
+    needles = CLINIC_NAME_ALIASES.get(needle, (needle,))
     out: set[str] = set()
     for _, row in businesses_df.iterrows():
         label = str(row.get("label") or row.get("business_name") or "").lower()
-        if needle in label:
+        if any(n in label for n in needles):
             bid = row.get("id")
             if bid is not None:
                 out.add(str(bid))
@@ -108,11 +122,21 @@ def _service_hours_by_business(result) -> dict[str, float]:
     if "business_id" not in df.columns:
         return {}
     df["business_id"] = df["business_id"].astype(str)
-    # Drop cancelled + DNA.
+    # Drop cancelled + DNA. Snapshot round-trip stringifies NaT (via
+    # json.dump default=str) so treat "NaT"/"None"/"nan"/"" all as
+    # "not cancelled" — otherwise every row looks cancelled and numer
+    # collapses to 0.
+    _NULLISH = {"", "nat", "none", "nan", "null"}
     if "cancelled_at" in df.columns:
-        df = df[df["cancelled_at"].isna() | (df["cancelled_at"] == "")]
+        _c = df["cancelled_at"].astype(str).str.lower().str.strip()
+        df = df[df["cancelled_at"].isna() | _c.isin(_NULLISH)]
     if "did_not_arrive" in df.columns:
-        df = df[~df["did_not_arrive"].fillna(False).astype(bool)]
+        _d = df["did_not_arrive"]
+        if _d.dtype == object:
+            _d = _d.astype(str).str.lower().isin({"true", "1"})
+        else:
+            _d = _d.fillna(False).astype(bool)
+        df = df[~_d]
     if df.empty or "starts_at" not in df.columns or "ends_at" not in df.columns:
         return {}
     df["starts_at"] = pd.to_datetime(df["starts_at"], utc=True, errors="coerce")
