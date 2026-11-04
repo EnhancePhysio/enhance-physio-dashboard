@@ -35,6 +35,38 @@ def _iter_appointments(client: ClinikoClient, dr: DateRange,
     yield from client.paginate("individual_appointments", params=params)
 
 
+def _iter_group_appointments(client: ClinikoClient, dr: DateRange,
+                               business_ids: list[int] | None = None,
+                               practitioner_ids: list[int] | None = None,
+                               extra_q: list[str] | None = None) -> Iterable[dict[str, Any]]:
+    """Fetch group_appointments (classes, EP group sessions) in the range.
+
+    Cliniko splits classes out into a separate endpoint. Mudgeeraba's
+    Exercise Physiology and Mulgrave's group work all live here, which is
+    why those practitioners' service_hours used to look halved.
+
+    v27.14 — we fold each group appt back into the appointments frame as
+    one row (keyed on the session's single practitioner + business +
+    start/end times), so downstream service_hours / utilisation / days
+    worked logic treats a group session as one hour of practitioner time.
+    """
+    params = starts_at_range_params(dr.start_iso_utc, dr.end_iso_utc)
+    q = list(params["q[]"])
+    if business_ids and len(business_ids) == 1:
+        q.append(f"business_id:={business_ids[0]}")
+    if practitioner_ids and len(practitioner_ids) == 1:
+        q.append(f"practitioner_id:={practitioner_ids[0]}")
+    if extra_q:
+        q.extend(extra_q)
+    params = {"q[]": q}
+    try:
+        yield from client.paginate("group_appointments", params=params)
+    except Exception:
+        # Not every Cliniko tenant exposes group_appointments — fail soft
+        # rather than breaking the whole fetch.
+        return
+
+
 def _appt_row(a: dict[str, Any]) -> dict[str, Any]:
     aid = a.get("id")
     return {
@@ -110,6 +142,15 @@ def fetch_appointments(client: ClinikoClient, dr: DateRange,
             _add(a)
     except Exception:
         pass
+
+    # Pass 3 — group appointments (classes / EP group sessions). Cliniko
+    # keeps these in a separate endpoint; without this pass their hours
+    # are missing entirely from service_hours / utilisation, which hits
+    # Mudgeeraba (EP groups) and Mulgrave hardest. Each group session
+    # yields ONE row — the practitioner's actual delivered hour — not
+    # one row per attendee. v27.14.
+    for a in _iter_group_appointments(client, dr, business_ids, practitioner_ids):
+        _add(a)
 
     df = pd.DataFrame(rows)
     if df.empty:
