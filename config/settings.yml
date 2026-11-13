@@ -467,11 +467,21 @@ ppva:
     - '(?i)senior physiotherapist'
     - '(?i)exercise physiology'
     - '(?i)medicare'                    # Medicare-funded EP / physio
+    - '(?i)physiotherapy'               # v27.18 — Mulgrave base "Initial Physiotherapy Appointment" etc.
+    - '(?i)physiotherapist'             # catches Mulgrave senior titles too
+    - '(?i)\bEIP\b'                     # Employer Early Intervention Program (pre-paid, counts as private)
   excluded_name_patterns:
     - '(?i)ndis'
     - '(?i)dva'
     - '(?i)workcover'
     - '(?i)tac'
+    - '(?i)hydrotherapy'                # group class, shouldn't count as private initial
+    - '(?i)clinical exercise class'     # group class
+    - '(?i)gla:?d'                      # GLA:D program
+    - '(?i)home care package'
+    - '(?i)occupational health'
+    - '(?i)functional capacity'
+    - '(?i)pre-employment'
 
 # Notes completion window (hours)
 notes_completion_window_hours: 24
