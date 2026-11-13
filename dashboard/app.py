@@ -181,9 +181,174 @@ def fetch_multi_org_metrics(preset: str, start: date | None, end: date | None,
 def _excluded_practitioner_name_patterns() -> list[str]:
     """Return the list of practitioner-name substrings to exclude, lowercased.
     Read fresh each call so a settings.yml edit propagates after a Streamlit
-    rerun without needing to clear caches."""
-    raw = load_settings().get("excluded_practitioners") or []
-    return [str(x).strip().lower() for x in raw if str(x).strip()]
+    rerun without needing to clear caches.
+
+    v27.16 — also folds in ``excluded_practitioners_until`` entries whose
+    ``until`` date is in the future, so time-bounded exclusions (leave of
+    absence, etc.) work automatically without manual list edits.
+    """
+    from datetime import date as _date, datetime as _dt
+    settings = load_settings()
+    raw = settings.get("excluded_practitioners") or []
+    patterns = [str(x).strip().lower() for x in raw if str(x).strip()]
+
+    today = _date.today()
+    for entry in (settings.get("excluded_practitioners_until") or []):
+        name = str(entry.get("name") or "").strip().lower()
+        until = entry.get("until")
+        if not name or not until:
+            continue
+        # Accept date object, datetime, or ISO string.
+        if isinstance(until, _date) and not isinstance(until, _dt):
+            until_d = until
+        elif isinstance(until, _dt):
+            until_d = until.date()
+        else:
+            try:
+                until_d = _dt.fromisoformat(str(until)).date()
+            except Exception:
+                continue
+        if today < until_d:
+            patterns.append(name)
+    return patterns
+
+
+def _excluded_at_clinic_rules() -> list[tuple[str, str]]:
+    """Return [(practitioner_pattern, clinic_pattern)] pairs, both lowercased.
+    Matches are substring, same as the global exclusion list."""
+    raw = load_settings().get("excluded_practitioner_at_clinic") or []
+    out: list[tuple[str, str]] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        p = str(entry.get("practitioner") or "").strip().lower()
+        c = str(entry.get("clinic") or "").strip().lower()
+        if p and c:
+            out.append((p, c))
+    return out
+
+
+def _apply_per_clinic_exclusions(result, practs_df, biz_df):
+    """Strip appointments where (practitioner, business) matches any
+    ``excluded_practitioner_at_clinic`` rule, then subtract the matching
+    hours from result.service_hours / consults so the matrix aggregates
+    don't include them. v27.16.
+
+    Note: this does NOT recompute utilisation / pva / ppva / cx_dna from
+    scratch — those require white-window cells (not in snapshot) or
+    appointment-type metadata. For the small volumes these per-clinic
+    exclusions trim (one practitioner's hours at one clinic), leaving
+    those as scaled approximations is fine. admin_utilisation.py's clinic
+    rollup will automatically pick up the filtered appointments frame.
+    """
+    rules = _excluded_at_clinic_rules()
+    if not rules or result is None:
+        return result
+    appts = getattr(result, "appointments", None)
+    if appts is None or appts.empty:
+        return result
+    if practs_df is None or practs_df.empty or biz_df is None or biz_df.empty:
+        return result
+
+    labels = practs_df["label"].astype(str).str.lower() \
+        if "label" in practs_df.columns else pd.Series(dtype=str)
+    biz_labels = biz_df["label"].astype(str).str.lower() \
+        if "label" in biz_df.columns else pd.Series(dtype=str)
+
+    pair_ids: list[tuple[set[str], set[str]]] = []
+    for (p_pat, c_pat) in rules:
+        p_mask = labels.str.contains(p_pat, regex=False, na=False)
+        c_mask = biz_labels.str.contains(c_pat, regex=False, na=False)
+        p_ids = {str(x) for x in practs_df.loc[p_mask, "id"].tolist()}
+        b_ids = {str(x) for x in biz_df.loc[c_mask, "id"].tolist()}
+        if p_ids and b_ids:
+            pair_ids.append((p_ids, b_ids))
+    if not pair_ids:
+        return result
+
+    df = appts.copy()
+    df["practitioner_id"] = df["practitioner_id"].astype(str)
+    df["business_id"] = df["business_id"].astype(str)
+    drop_mask = pd.Series(False, index=df.index)
+    for p_ids, b_ids in pair_ids:
+        drop_mask = drop_mask | (df["practitioner_id"].isin(p_ids)
+                                    & df["business_id"].isin(b_ids))
+    if not drop_mask.any():
+        return result
+    kept = df[~drop_mask].reset_index(drop=True)
+    stripped = df[drop_mask].reset_index(drop=True)
+
+    # Compute hours/consults to subtract per practitioner. Robust against
+    # snapshot-stringified timestamps and NaT-as-"NaT" cancelled markers.
+    _NULLISH = {"", "nat", "none", "nan", "null"}
+    def _delivered_only(frame: pd.DataFrame) -> pd.DataFrame:
+        if frame.empty:
+            return frame
+        f = frame.copy()
+        if "cancelled_at" in f.columns:
+            _c = f["cancelled_at"].astype(str).str.lower().str.strip()
+            f = f[f["cancelled_at"].isna() | _c.isin(_NULLISH)]
+        if "did_not_arrive" in f.columns:
+            _d = f["did_not_arrive"]
+            if _d.dtype == object:
+                _d = _d.astype(str).str.lower().isin({"true", "1"})
+            else:
+                _d = _d.fillna(False).astype(bool)
+            f = f[~_d]
+        return f
+
+    stripped_delivered = _delivered_only(stripped)
+    strip_hours: dict[str, float] = {}
+    strip_consults: dict[str, int] = {}
+    if not stripped_delivered.empty and {"starts_at", "ends_at"} <= set(stripped_delivered.columns):
+        s = stripped_delivered.copy()
+        s["starts_at"] = pd.to_datetime(s["starts_at"], utc=True, errors="coerce")
+        s["ends_at"] = pd.to_datetime(s["ends_at"], utc=True, errors="coerce")
+        s = s.dropna(subset=["starts_at", "ends_at"])
+        if not s.empty:
+            s["d_h"] = (s["ends_at"] - s["starts_at"]).dt.total_seconds() / 3600.0
+            strip_hours = s.groupby("practitioner_id")["d_h"].sum().to_dict()
+            strip_consults = s.groupby("practitioner_id").size().to_dict()
+
+    from dashboard.metrics import MetricResult
+    fields = {}
+    for name in result.__dataclass_fields__:
+        v = getattr(result, name)
+        if name == "appointments":
+            fields[name] = kept
+            continue
+        if name == "service_hours" and isinstance(v, pd.DataFrame) and not v.empty \
+                and "service_hours" in v.columns:
+            sh = v.copy()
+            sh["practitioner_id"] = sh["practitioner_id"].astype(str)
+            sh["service_hours"] = sh.apply(
+                lambda r: max(0.0, float(r["service_hours"])
+                                 - float(strip_hours.get(str(r["practitioner_id"]), 0.0))),
+                axis=1,
+            )
+            if "days_worked" in sh.columns:
+                sh["avg_hours_per_day"] = sh.apply(
+                    lambda r: (float(r["service_hours"]) / float(r["days_worked"]))
+                                if r["days_worked"] else 0.0,
+                    axis=1,
+                )
+            fields[name] = sh
+            continue
+        if name == "consults" and isinstance(v, pd.DataFrame) and not v.empty \
+                and "consults_delivered" in v.columns:
+            c = v.copy()
+            c["practitioner_id"] = c["practitioner_id"].astype(str)
+            c["consults_delivered"] = c.apply(
+                lambda r: max(0, int(r["consults_delivered"])
+                                 - int(strip_consults.get(str(r["practitioner_id"]), 0))),
+                axis=1,
+            )
+            fields[name] = c
+            continue
+        fields[name] = v
+    return MetricResult(**fields)
+
+
 
 
 def _excluded_practitioner_ids(practs: pd.DataFrame) -> set:
@@ -605,10 +770,104 @@ def overview_tab(filters: dict):
     if data_source != "live":
         result = _drop_excluded_from_metric_result(result, excluded_ids)
 
+    # v27.19 — ALWAYS rebuild PPVA at render time from the appointments
+    # frame, using current settings.yml patterns + BB tier rules. This
+    # means pattern tweaks and cohort changes take effect on the next
+    # page load without needing to re-snapshot every past month.
+    try:
+        from dashboard.metrics import ppva as _ppva_fn, MetricResult
+        # Load reference frames from all selected orgs (appointment_types
+        # live per-org, so we need to concat).
+        _appt_types_frames: list[pd.DataFrame] = []
+        for _ok in selected_org_keys:
+            try:
+                _appt_types_frames.append(cached_appointment_types(_ok))
+            except Exception:
+                pass
+        _appt_types_all = (pd.concat(_appt_types_frames, ignore_index=True)
+                             if _appt_types_frames else pd.DataFrame())
+        if "id" in _appt_types_all.columns and not _appt_types_all.empty:
+            _appt_types_all = _appt_types_all.drop_duplicates(subset=["id"], keep="first")
+        _appts_for_ppva = getattr(result, "appointments", pd.DataFrame())
+        if _appts_for_ppva is not None and not _appts_for_ppva.empty \
+                and not _appt_types_all.empty:
+            new_ppva = _ppva_fn(_appts_for_ppva, _appt_types_all,
+                                 practitioners_df=all_practs, dr=dr)
+            # Swap just the ppva field, leave everything else as-is.
+            _fields = {n: getattr(result, n) for n in result.__dataclass_fields__}
+            _fields["ppva"] = new_ppva
+            result = MetricResult(**_fields)
+    except Exception as _e:
+        st.warning(f"PPVA render-time rebuild skipped: {_e}")
+
+    # v27.16 — per-clinic exclusions (Nathan@Mudgeeraba, Calvin@Albury, …).
+    # These drop (practitioner, business) appointment rows from the
+    # appointments frame and subtract the matching hours/consults from
+    # the per-practitioner volume frames so the matrix aggregate stops
+    # counting that person at that clinic. admin_utilisation then
+    # re-derives clinic utilisation from the filtered appointments.
+    _biz_for_excl = filters.get("businesses")
+    result = _apply_per_clinic_exclusions(result, all_practs, _biz_for_excl)
+
     # v27.5 — overlay admin-tool availability.csv onto utilisation and
     # utilisation_by_clinic so clinics with messy Cliniko rosters don't
     # read as artificially low. Falls back to Cliniko-roster numbers if
     # no admin availability has been synced for the range.
+    # v27.19 — PPVA appointment-type classification diagnostic. Shows
+    # which Mulgrave/Mudgeeraba/AW appointment types got tagged Private,
+    # EPC, Initial so pattern mismatches jump out.
+    with st.expander("🔍 PPVA type classification (debug Justin/Noah PPVA numbers)"):
+        import re as _re
+        settings = load_settings().get("ppva", {})
+        include_pats = settings.get("private_name_patterns", [])
+        exclude_pats = settings.get("excluded_name_patterns", [])
+        _epc_pat = _re.compile(r"\b(epc|medicare|cdm|chronic\s*disease|team\s*care)\b",
+                                 _re.IGNORECASE)
+        rows = []
+        for _ok in selected_org_keys:
+            try:
+                _at = cached_appointment_types(_ok)
+            except Exception:
+                continue
+            for _, r in _at.iterrows():
+                n = str(r.get("name") or "")
+                has_inc = any(_re.search(p, n) for p in include_pats)
+                has_exc = any(_re.search(p, n) for p in exclude_pats)
+                is_priv = has_inc and not has_exc
+                is_epc = bool(_epc_pat.search(n))
+                is_init = "initial" in n.lower()
+                rows.append({
+                    "org": _ok,
+                    "type_name": n,
+                    "is_private_full": is_priv,
+                    "is_epc": is_epc,
+                    "is_initial": is_init,
+                    "counts_full_fee_initial": is_priv and is_init,
+                    "counts_bb_initial": is_priv and is_init and not is_epc,
+                })
+        if rows:
+            _tdf = pd.DataFrame(rows).sort_values(["org", "type_name"])
+            st.dataframe(_tdf, use_container_width=True, hide_index=True)
+            st.caption(
+                "**counts_full_fee_initial** = included in Noah-style PPVA denominator. "
+                "**counts_bb_initial** = included in Justin-style PPVA denominator. "
+                "If Justin's main initial types show `counts_bb_initial = False`, "
+                "the EPC regex is over-matching their names — tell me which."
+            )
+        # Also show which practitioners are currently resolved as BB.
+        try:
+            from dashboard.metrics import _bb_practitioner_ids as _bb_fn
+            _bb_ids = _bb_fn(all_practs, dr)
+            if _bb_ids and all_practs is not None and not all_practs.empty:
+                _bb_rows = all_practs[all_practs["id"].astype(str).isin(_bb_ids)]
+                st.markdown("**Practitioners currently tiered as BB/Graduate for this range:**")
+                st.dataframe(_bb_rows[["id", "label"]].reset_index(drop=True),
+                              use_container_width=True, hide_index=True)
+            else:
+                st.info("No practitioners currently resolve as BB/Graduate for this date range.")
+        except Exception as _be:
+            st.warning(f"BB resolver diagnostic unavailable: {_be}")
+
     _util_diag: dict = {}
     try:
         from dashboard.admin_utilisation import apply_admin_utilisation
