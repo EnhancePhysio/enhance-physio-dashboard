@@ -181,23 +181,18 @@ def _is_delivered(df: pd.DataFrame) -> pd.Series:
     completed appointments for tidiness. Only cancellation or DNA removes
     an appointment from the 'delivered' set.
 
-    v27.21 — snapshot round-trip stringifies NaT via ``json.dump
-    (default=str)``, so cancelled_at comes back as the string "NaT"
-    (not NaN). Treat ``""``, ``"NaT"``, ``"None"``, ``"nan"`` and
-    ``"null"`` all as "not cancelled" so PPVA / Cx-DNA / PVA all work
-    on snapshot-loaded data.
+    v27.23 — dtype-agnostic implementation. Snapshot round-trips (via
+    json.dump default=str) produce object columns full of strings like
+    "NaT", "None", "False". Live fetches produce real pd.NaT / bools.
+    Instead of branching on dtype, we coerce every value to a lowercase
+    string and match against a fixed null-ish / truthy set — works
+    uniformly across both paths.
     """
-    _NULLISH = {"", "nat", "none", "nan", "null"}
-    if df["cancelled_at"].dtype == object:
-        _c = df["cancelled_at"].astype(str).str.lower().str.strip()
-        cancelled = df["cancelled_at"].notna() & ~_c.isin(_NULLISH)
-    else:
-        cancelled = df["cancelled_at"].notna()
-    _d = df["did_not_arrive"]
-    if _d.dtype == object:
-        dna = _d.astype(str).str.lower().isin({"true", "1"})
-    else:
-        dna = _d.fillna(False).astype(bool)
+    _NULLISH = {"", "nat", "none", "nan", "null", "<na>"}
+    _cstr = df["cancelled_at"].astype(str).str.lower().str.strip()
+    cancelled = ~_cstr.isin(_NULLISH)
+    _dstr = df["did_not_arrive"].astype(str).str.lower().str.strip()
+    dna = _dstr.isin({"true", "1"})
     return ~(cancelled | dna)
 
 

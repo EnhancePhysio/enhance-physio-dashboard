@@ -905,7 +905,14 @@ def overview_tab(filters: dict):
                 _ad["practitioner_id"] = _ad["practitioner_id"].astype(str)
                 _ad["type_name"] = _ad["appointment_type_id"].map(_id_to_name).fillna("<unknown>")
                 _unknown_types = int((_ad["type_name"] == "<unknown>").sum())
-                _ad = _ad[_is_delivered(_ad)]
+                # v27.23 — inline delivered filter, independent of metrics._is_delivered,
+                # robust to snapshot-stringified NaT and bool-as-string did_not_arrive.
+                _NULLISH = {"", "nat", "none", "nan", "null", "<na>"}
+                _cstr = _ad["cancelled_at"].astype(str).str.lower().str.strip()
+                _cancelled = ~_cstr.isin(_NULLISH)
+                _dstr = _ad["did_not_arrive"].astype(str).str.lower().str.strip()
+                _dna = _dstr.isin({"true", "1"})
+                _ad = _ad[~(_cancelled | _dna)]
                 _after_filter = len(_ad)
                 st.caption(
                     f"**Delivered filter:** {_before_filter} rows in · "
