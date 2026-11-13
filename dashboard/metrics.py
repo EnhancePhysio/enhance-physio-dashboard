@@ -67,9 +67,10 @@ def _iter_group_appointments(client: ClinikoClient, dr: DateRange,
         return
 
 
-def _appt_row(a: dict[str, Any]) -> dict[str, Any]:
+def _appt_row(a: dict[str, Any], is_group: bool = False) -> dict[str, Any]:
     aid = a.get("id")
     return {
+        "is_group": is_group,
         # Keep ID as string — appointment IDs are referenced by treatment_notes
         # via a URL link that extract_linked_id parses as str, so both sides of
         # the join must match as strings.
@@ -118,8 +119,8 @@ def fetch_appointments(client: ClinikoClient, dr: DateRange,
     rows: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
 
-    def _add(a: dict[str, Any]) -> None:
-        row = _appt_row(a)
+    def _add(a: dict[str, Any], is_group: bool = False) -> None:
+        row = _appt_row(a, is_group=is_group)
         rid = row["id"]
         if rid is None or rid in seen_ids:
             return
@@ -150,7 +151,7 @@ def fetch_appointments(client: ClinikoClient, dr: DateRange,
     # yields ONE row — the practitioner's actual delivered hour — not
     # one row per attendee. v27.14.
     for a in _iter_group_appointments(client, dr, business_ids, practitioner_ids):
-        _add(a)
+        _add(a, is_group=True)
 
     df = pd.DataFrame(rows)
     if df.empty:
@@ -192,32 +193,33 @@ def new_patients(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange,
                   appt_types: pd.DataFrame | None = None) -> pd.DataFrame:
     """Count distinct NEW CLIENTS seen by each practitioner in the range.
 
-    Two signals decide whether a patient is "new" in the range:
-      1. They attended a delivered appointment whose type matches the
-         Initial naming pattern (captures Physio, Massage, etc. Initials).
-      2. Their Cliniko `created_at` falls inside the range — Cliniko creates
-         the patient record at their first-ever booking, so created_at in
-         range ≈ first-time patient of the practice. This is the signal for
-         DVA / NDIS / TAC / NSW WorkCover patients, which don't have
-         dedicated "Initial" appointment types.
+    v27.17 — switched to match Cliniko's Practitioner Performance report
+    exactly: a patient is "new" if their Cliniko ``created_at`` (first-
+    ever booking anywhere in the practice) falls inside the selected
+    date range. The old Initial-appointment-type signal over-counted on
+    orgs where "Initial" types get used for subsequent concerns (e.g.
+    Mulgrave graduates), inflating new_patients and deflating PVA.
 
-    If either signal fires, the patient's delivered appts in the range get
-    counted per-practitioner (distinct patient IDs). Same patient seen by
-    two practitioners counts once for each — matches Cliniko's own
-    Practitioner Performance report attribution.
+    We still fall back to the Initial-type signal when the patient scan
+    returns nothing (e.g. small clinics that haven't enabled the scan),
+    so legacy behaviour survives if settings.new_patients.scan_patients
+    is left off. Set scan_patients: true in settings.yml to get the
+    accurate number.
     """
-    if appts.empty or appt_types is None or appt_types.empty:
+    if appts.empty:
         return pd.DataFrame(columns=["practitioner_id", "new_patients"])
 
-    # -- Signal 1: Initial-type appts --
+    # -- Signal 1: Initial-type appts (fallback only — see docstring) --
     initial_pattern = re.compile(
         r"\b(initial|new\s*patient|new\s*client|assessment|first\s*visit)\b",
         re.IGNORECASE,
     )
-    initial_type_ids = {
-        str(row["id"]) for _, row in appt_types.iterrows()
-        if row.get("name") and initial_pattern.search(str(row["name"]))
-    }
+    initial_type_ids: set[str] = set()
+    if appt_types is not None and not appt_types.empty:
+        initial_type_ids = {
+            str(row["id"]) for _, row in appt_types.iterrows()
+            if row.get("name") and initial_pattern.search(str(row["name"]))
+        }
 
     # -- Signal 2: patients created inside the range --
     # OPT-IN because it paginates /patients with updated_at:>=start, which
@@ -269,15 +271,16 @@ def new_patients(client: ClinikoClient, appts: pd.DataFrame, dr: DateRange,
     if delivered.empty:
         return pd.DataFrame(columns=["practitioner_id", "new_patients"])
 
-    is_initial_type = (
-        delivered["appointment_type_id"].astype(str).isin(initial_type_ids)
-        if initial_type_ids else pd.Series(False, index=delivered.index)
-    )
-    is_date_new = (
-        delivered["patient_id"].astype(str).isin(created_in_range)
-        if created_in_range else pd.Series(False, index=delivered.index)
-    )
-    new_rows = delivered[is_initial_type | is_date_new]
+    # v27.17 — when the patient scan found created_at-in-range patients,
+    # trust that signal exclusively (it matches Cliniko's Practitioner
+    # Performance "new clients" column). Only fall back to the Initial-
+    # type heuristic when scan_patients was off or returned nothing.
+    if created_in_range:
+        new_rows = delivered[delivered["patient_id"].astype(str).isin(created_in_range)]
+    elif initial_type_ids:
+        new_rows = delivered[delivered["appointment_type_id"].astype(str).isin(initial_type_ids)]
+    else:
+        new_rows = delivered.iloc[0:0]
     if new_rows.empty:
         return pd.DataFrame(columns=["practitioner_id", "new_patients"])
 
@@ -429,7 +432,26 @@ def _match_any(name: str, patterns: list[str]) -> bool:
     return any(re.search(p, name) for p in patterns)
 
 
-def ppva(appts: pd.DataFrame, appt_types: pd.DataFrame) -> pd.DataFrame:
+def ppva(appts: pd.DataFrame, appt_types: pd.DataFrame,
+          practitioners_df: pd.DataFrame | None = None,
+          dr: "DateRange | None" = None) -> pd.DataFrame:
+    """Private PVA = private attended consults ÷ private initials.
+
+    v27.17 — per-tier EPC rule:
+      * BB/Graduate practitioners: Private only (EPC EXCLUDED), both
+        numerator and denominator.
+      * Everyone else (full-fee): Private + EPC together (EPC INCLUDED),
+        both numerator and denominator.
+
+    Tier lookup uses the ``practitioner_tiers.bb_graduate`` list in
+    settings.yml, with date-windowed membership so this year's cohort
+    graduates to full-fee automatically on 1 Jan when the next cohort
+    starts. The ``dr`` argument says which date range we're scoring —
+    membership check is "did this BB window overlap the selected
+    range?". If practitioners_df / dr aren't supplied, the function
+    falls back to the pre-v27.17 "Private + EPC for everyone" rule so
+    older callers (unit tests, legacy paths) still work.
+    """
     if appts.empty or appt_types.empty:
         return pd.DataFrame(columns=["practitioner_id", "ppva"])
     settings = load_settings()["ppva"]
@@ -439,29 +461,127 @@ def ppva(appts: pd.DataFrame, appt_types: pd.DataFrame) -> pd.DataFrame:
     types = appt_types.copy()
     has_include = types["name"].apply(lambda n: _match_any(n, include))
     has_exclude = types["name"].apply(lambda n: _match_any(n, exclude))
-    types["is_private"] = has_include & ~has_exclude
-    # v27.9 — Fallback for orgs whose appointment types don't contain the
-    # "Private"/"EPC" tokens in their names (e.g. Mudgeeraba on the Gold
-    # Coast — purely private practice, so Cliniko types are just
-    # "Physiotherapy Initial"/"Standard" with no Private tag). In that
-    # case treat "not excluded" (i.e. not NDIS/DVA/WorkCover/TAC) as
-    # private so PPVA still computes per practitioner.
-    if not types["is_private"].any():
-        types["is_private"] = ~has_exclude
+    # Full-fee "is private" = include-match AND not NDIS/DVA/etc. EPC
+    # usually matches `has_include` too (it's billed through Medicare
+    # which many clinics tag the same as Private). We split EPC back
+    # out below with its own pattern for the BB/Graduate rule.
+    types["is_private_full"] = has_include & ~has_exclude
+    if not types["is_private_full"].any():
+        types["is_private_full"] = ~has_exclude  # Mudgeeraba fallback (v27.9)
+
+    # EPC appointment type detection — regex against the type name.
+    _epc_pattern = re.compile(r"\b(epc|medicare|cdm|chronic\s*disease|team\s*care)\b",
+                                re.IGNORECASE)
+    types["is_epc"] = types["name"].astype(str).apply(
+        lambda n: bool(_epc_pattern.search(n))
+    )
+    # BB/Graduate "is private" = full-fee Private AND NOT EPC.
+    types["is_private_bb"] = types["is_private_full"] & ~types["is_epc"]
     types["is_initial"] = types["name"].str.contains("initial", case=False, na=False)
-    private_ids = set(types.loc[types["is_private"], "id"])
-    initial_private_ids = set(types.loc[types["is_private"] & types["is_initial"], "id"])
+
+    full_private_ids = set(types.loc[types["is_private_full"], "id"].astype(str))
+    full_initial_ids = set(types.loc[types["is_private_full"] & types["is_initial"], "id"].astype(str))
+    bb_private_ids = set(types.loc[types["is_private_bb"], "id"].astype(str))
+    bb_initial_ids = set(types.loc[types["is_private_bb"] & types["is_initial"], "id"].astype(str))
+
+    # Resolve which practitioner_ids are BB/Graduate for this date range.
+    bb_pract_ids: set[str] = _bb_practitioner_ids(practitioners_df, dr)
 
     delivered = appts[_is_delivered(appts)].copy()
-    delivered["is_private"] = delivered["appointment_type_id"].isin(private_ids)
-    delivered["is_initial_private"] = delivered["appointment_type_id"].isin(initial_private_ids)
+    delivered["appointment_type_id"] = delivered["appointment_type_id"].astype(str)
+    delivered["practitioner_id"] = delivered["practitioner_id"].astype(str)
 
-    by = delivered.groupby("practitioner_id").agg(
-        private_consults=("is_private", "sum"),
-        initial_private=("is_initial_private", "sum"),
-    ).reset_index()
-    by["ppva"] = (by["private_consults"] / by["initial_private"]).where(by["initial_private"] > 0, 0)
-    return by[["practitioner_id", "ppva"]]
+    out_rows: list[dict[str, Any]] = []
+    for pid, group in delivered.groupby("practitioner_id"):
+        pid = str(pid)
+        if pid in bb_pract_ids:
+            priv_set, init_set = bb_private_ids, bb_initial_ids
+        else:
+            priv_set, init_set = full_private_ids, full_initial_ids
+        pc = int(group["appointment_type_id"].isin(priv_set).sum())
+        ic = int(group["appointment_type_id"].isin(init_set).sum())
+        out_rows.append({
+            "practitioner_id": pid,
+            "ppva": (pc / ic) if ic > 0 else 0.0,
+        })
+    return pd.DataFrame(out_rows, columns=["practitioner_id", "ppva"])
+
+
+def _load_practitioners_for_tiers(client: ClinikoClient) -> pd.DataFrame:
+    """Best-effort practitioners DF for tier resolution inside
+    compute_core_metrics. Kept small/private so if the reference load
+    fails we silently fall back to the "no tiers" (all full-fee) path.
+    """
+    try:
+        from dashboard.reference_data import load_practitioners
+        return load_practitioners(client)
+    except Exception:
+        return pd.DataFrame(columns=["id", "label"])
+
+
+def _bb_practitioner_ids(practitioners_df: "pd.DataFrame | None",
+                           dr: "DateRange | None") -> set[str]:
+    """Return the set of practitioner_ids who are on the BB/Graduate
+    tier during the given date range. Reads settings.yml fresh every
+    call so a cohort edit propagates without a code restart.
+    """
+    if practitioners_df is None or practitioners_df.empty \
+            or "label" not in practitioners_df.columns:
+        return set()
+    from datetime import date as _date, datetime as _dt
+    settings = load_settings()
+    tiers = (settings.get("practitioner_tiers") or {}) if isinstance(settings, dict) else {}
+    cohort = tiers.get("bb_graduate") or []
+    if not cohort:
+        return set()
+
+    # Figure out which days we're scoring, to pick the right cohort year.
+    if dr is not None:
+        try:
+            rng_start = dr.start.date() if hasattr(dr, "start") else None
+            rng_end = dr.end.date() if hasattr(dr, "end") else None
+        except Exception:
+            rng_start = rng_end = None
+    else:
+        rng_start = rng_end = None
+    today = _date.today()
+    if rng_start is None:
+        rng_start = today
+    if rng_end is None:
+        rng_end = today
+
+    def _to_date(v: Any) -> "_date | None":
+        if v is None:
+            return None
+        if isinstance(v, _date) and not isinstance(v, _dt):
+            return v
+        if isinstance(v, _dt):
+            return v.date()
+        try:
+            return _dt.fromisoformat(str(v)).date()
+        except Exception:
+            return None
+
+    active_names: list[str] = []
+    for entry in cohort:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("name") or "").strip().lower()
+        if not name:
+            continue
+        frm = _to_date(entry.get("from")) or _date(1900, 1, 1)
+        unt = _to_date(entry.get("until")) or _date(2100, 1, 1)
+        # Overlap check: [frm, unt) vs [rng_start, rng_end]
+        if frm <= rng_end and unt > rng_start:
+            active_names.append(name)
+    if not active_names:
+        return set()
+
+    labels = practitioners_df["label"].astype(str).str.lower()
+    mask = pd.Series(False, index=practitioners_df.index)
+    for pat in active_names:
+        mask = mask | labels.str.contains(pat, regex=False, na=False)
+    return {str(x) for x in practitioners_df.loc[mask, "id"].tolist()}
 
 
 # -------------------------------------------------------------------
@@ -472,8 +592,24 @@ def cx_dna_rates(appts: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(columns=["practitioner_id", "scheduled", "cancelled",
                                      "dna", "cx_rate", "dna_rate", "cx_dna_combined_rate"])
     df = appts.copy()
-    df["cancelled"] = df["cancelled_at"].notna()
-    df["dna"] = df["did_not_arrive"].fillna(False).astype(bool)
+    # v27.17 — Exclude group appointments. Group sessions almost never
+    # get cancelled or DNA'd per-attendee (the class runs regardless), so
+    # including them drops every practitioner's Cx/DNA rate artificially
+    # (dashboard would read ~5% when the real individual-appt rate is 9%).
+    if "is_group" in df.columns:
+        df = df[~df["is_group"].fillna(False).astype(bool)]
+    if df.empty:
+        return pd.DataFrame(columns=["practitioner_id", "scheduled", "cancelled",
+                                     "dna", "cx_rate", "dna_rate", "cx_dna_combined_rate"])
+    # Snapshot round-trip stringifies NaT — treat null-ish strings as "not cancelled".
+    _NULLISH = {"", "nat", "none", "nan", "null"}
+    _cstr = df["cancelled_at"].astype(str).str.lower().str.strip()
+    df["cancelled"] = df["cancelled_at"].notna() & ~_cstr.isin(_NULLISH)
+    _d = df["did_not_arrive"]
+    if _d.dtype == object:
+        df["dna"] = _d.astype(str).str.lower().isin({"true", "1"})
+    else:
+        df["dna"] = _d.fillna(False).astype(bool)
     g = df.groupby("practitioner_id").agg(
         scheduled=("id", "count"),
         cancelled=("cancelled", "sum"),
@@ -1196,7 +1332,9 @@ def compute_core_metrics(client: ClinikoClient, dr: DateRange, appt_types: pd.Da
         service_hours=service_hours(client, appts, dr, practitioner_ids,
                                      white_space_hours=ws_map),
         pva=pva(appts, np_df),
-        ppva=ppva(appts, appt_types),
+        ppva=ppva(appts, appt_types,
+                    practitioners_df=_load_practitioners_for_tiers(client),
+                    dr=dr),
         cx_dna=cx_dna_rates(appts),
         utilisation=utilisation(client, appts, dr, cells=cells),
         utilisation_by_clinic=utilisation_by_clinic(client, appts, dr, cells=cells),
