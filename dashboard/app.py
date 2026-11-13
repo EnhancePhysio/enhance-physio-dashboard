@@ -856,7 +856,7 @@ def overview_tab(filters: dict):
             )
         # Also show which practitioners are currently resolved as BB.
         try:
-            from dashboard.metrics import _bb_practitioner_ids as _bb_fn
+            from dashboard.metrics import _bb_practitioner_ids as _bb_fn, _is_delivered
             _bb_ids = _bb_fn(all_practs, dr)
             if _bb_ids and all_practs is not None and not all_practs.empty:
                 _bb_rows = all_practs[all_practs["id"].astype(str).isin(_bb_ids)]
@@ -867,6 +867,72 @@ def overview_tab(filters: dict):
                 st.info("No practitioners currently resolve as BB/Graduate for this date range.")
         except Exception as _be:
             st.warning(f"BB resolver diagnostic unavailable: {_be}")
+
+        # v27.20 — per-practitioner PPVA breakdown. Shows the actual
+        # numerator (private_consults) and denominator (initial_private)
+        # that feed into the PPVA calc, under BOTH the BB and full-fee
+        # rules, for every practitioner with any appointments. Tier used
+        # is highlighted in the "rule_applied" column.
+        try:
+            _appts_diag = getattr(result, "appointments", pd.DataFrame())
+            if _appts_diag is not None and not _appts_diag.empty \
+                    and not _tdf.empty:
+                # Rebuild private_id sets from the live _tdf (same logic
+                # as ppva() — keeps both views in sync).
+                _full_init = set(_tdf.loc[_tdf["counts_full_fee_initial"],
+                                            "type_name"].tolist())
+                _full_priv_names = set(_tdf.loc[_tdf["is_private_full"], "type_name"].tolist())
+                _bb_init = set(_tdf.loc[_tdf["counts_bb_initial"], "type_name"].tolist())
+                _bb_priv_names = set(_tdf.loc[_tdf["is_private_full"] & ~_tdf["is_epc"],
+                                                "type_name"].tolist())
+                # Need appointment_type_id → name lookup.
+                _id_to_name: dict[str, str] = {}
+                for _ok in selected_org_keys:
+                    try:
+                        for _, _r in cached_appointment_types(_ok).iterrows():
+                            _id_to_name[str(_r["id"])] = str(_r.get("name") or "")
+                    except Exception:
+                        pass
+                _ad = _appts_diag.copy()
+                _ad["appointment_type_id"] = _ad["appointment_type_id"].astype(str)
+                _ad["practitioner_id"] = _ad["practitioner_id"].astype(str)
+                _ad["type_name"] = _ad["appointment_type_id"].map(_id_to_name).fillna("<unknown>")
+                _ad = _ad[_is_delivered(_ad)]
+                # Tag which bucket each appt lands in.
+                _ad["full_private"] = _ad["type_name"].isin(_full_priv_names)
+                _ad["full_initial"] = _ad["type_name"].isin(_full_init)
+                _ad["bb_private"] = _ad["type_name"].isin(_bb_priv_names)
+                _ad["bb_initial"] = _ad["type_name"].isin(_bb_init)
+                # Join practitioner label.
+                _plabels = all_practs[["id", "label"]].copy() if all_practs is not None else pd.DataFrame(columns=["id","label"])
+                _plabels["id"] = _plabels["id"].astype(str)
+                g = _ad.groupby("practitioner_id").agg(
+                    full_private=("full_private", "sum"),
+                    full_initial=("full_initial", "sum"),
+                    bb_private=("bb_private", "sum"),
+                    bb_initial=("bb_initial", "sum"),
+                    total_delivered=("full_private", "count"),
+                ).reset_index()
+                g["ppva_full_fee"] = g.apply(
+                    lambda r: (r["full_private"] / r["full_initial"]) if r["full_initial"] else 0.0,
+                    axis=1)
+                g["ppva_bb"] = g.apply(
+                    lambda r: (r["bb_private"] / r["bb_initial"]) if r["bb_initial"] else 0.0,
+                    axis=1)
+                g["rule_applied"] = g["practitioner_id"].apply(
+                    lambda pid: "BB (EPC excluded)" if pid in _bb_ids else "Full-fee (EPC included)")
+                g["ppva_used"] = g.apply(
+                    lambda r: r["ppva_bb"] if r["practitioner_id"] in _bb_ids else r["ppva_full_fee"],
+                    axis=1)
+                g = g.merge(_plabels.rename(columns={"id": "practitioner_id"}),
+                             on="practitioner_id", how="left")
+                st.markdown("**Per-practitioner PPVA breakdown:**")
+                st.dataframe(g[["label", "rule_applied", "total_delivered",
+                                 "full_private", "full_initial", "ppva_full_fee",
+                                 "bb_private", "bb_initial", "ppva_bb", "ppva_used"]],
+                              use_container_width=True, hide_index=True)
+        except Exception as _pe:
+            st.warning(f"Per-practitioner PPVA diagnostic unavailable: {_pe}")
 
     _util_diag: dict = {}
     try:
