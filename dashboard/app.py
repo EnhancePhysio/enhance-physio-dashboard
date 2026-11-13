@@ -875,6 +875,12 @@ def overview_tab(filters: dict):
         # is highlighted in the "rule_applied" column.
         try:
             _appts_diag = getattr(result, "appointments", pd.DataFrame())
+            st.caption(
+                f"**Pipeline trace:** result.appointments rows = "
+                f"{0 if _appts_diag is None else len(_appts_diag)} · "
+                f"columns = "
+                f"{[] if _appts_diag is None else list(_appts_diag.columns)[:10]}..."
+            )
             if _appts_diag is not None and not _appts_diag.empty \
                     and not _tdf.empty:
                 # Rebuild private_id sets from the live _tdf (same logic
@@ -894,10 +900,21 @@ def overview_tab(filters: dict):
                     except Exception:
                         pass
                 _ad = _appts_diag.copy()
+                _before_filter = len(_ad)
                 _ad["appointment_type_id"] = _ad["appointment_type_id"].astype(str)
                 _ad["practitioner_id"] = _ad["practitioner_id"].astype(str)
                 _ad["type_name"] = _ad["appointment_type_id"].map(_id_to_name).fillna("<unknown>")
+                _unknown_types = int((_ad["type_name"] == "<unknown>").sum())
                 _ad = _ad[_is_delivered(_ad)]
+                _after_filter = len(_ad)
+                st.caption(
+                    f"**Delivered filter:** {_before_filter} rows in · "
+                    f"{_after_filter} delivered · "
+                    f"{_unknown_types} rows had no type_name match · "
+                    f"id_to_name size = {len(_id_to_name)} · "
+                    f"full_priv_names = {len(_full_priv_names)} · "
+                    f"bb_init_names = {len(_bb_init)}"
+                )
                 # Tag which bucket each appt lands in.
                 _ad["full_private"] = _ad["type_name"].isin(_full_priv_names)
                 _ad["full_initial"] = _ad["type_name"].isin(_full_init)
