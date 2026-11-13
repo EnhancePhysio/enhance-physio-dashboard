@@ -17,6 +17,46 @@ excluded_practitioners:
   - Bel
   - Jessica Rayner
 
+# v27.16 — Time-bounded global exclusions. Removed from every calc UNTIL
+# the given date (ISO yyyy-mm-dd). After that date they're treated as
+# active again automatically. Use for leave, mat leave, sabbatical, etc.
+excluded_practitioners_until:
+  - { name: Sarah Clemm, until: 2027-01-01 }
+
+# v27.16 — Per-clinic exclusions. A practitioner is kept in the dashboard
+# overall but their hours / consults / NPS / audit at the named clinic
+# are stripped out before any clinic-level aggregation. Use when someone
+# works at several clinics but shouldn't be counted toward one of them
+# (admin-only block, temporary cover, etc.). Clinic match is substring
+# against the Cliniko business label (so "Albury" catches "Enhance Physio
+# Albury").
+excluded_practitioner_at_clinic:
+  - { practitioner: Nathan Sceriha, clinic: Mudgeeraba }
+  - { practitioner: Calvin Ellis, clinic: Albury }
+
+# v27.17 — Book Builder / Graduate program cohort. Dated rows so each
+# year's cohort auto-activates and auto-graduates without code changes.
+# Rule used by PPVA: BB/Graduates have PPVA = Private only (EPC
+# EXCLUDED). Everyone else = full-fee, PPVA = Private + EPC together.
+# `from` is inclusive, `until` is exclusive. Match is substring, case-
+# insensitive, against the Cliniko practitioner label (just like
+# excluded_practitioners), so first names alone are usually fine unless
+# two practitioners share one.
+practitioner_tiers:
+  bb_graduate:
+    - { name: Emily Stewart,    from: 2026-01-01, until: 2027-01-01 }
+    - { name: Mackensey House,  from: 2026-01-01, until: 2027-01-01 }
+    - { name: Natalie Gibbons,  from: 2026-01-01, until: 2027-01-01 }
+    - { name: Justin Chai,      from: 2026-01-01, until: 2027-01-01 }
+    - { name: Jaslin Sawatzky,  from: 2026-01-01, until: 2027-01-01 }
+    - { name: Ryan Cannon,      from: 2026-01-01, until: 2027-01-01 }
+    - { name: Rina,             from: 2027-01-01, until: 2028-01-01 }
+    - { name: Olivia,           from: 2027-01-01, until: 2028-01-01 }
+    - { name: Abby Stubbs,      from: 2027-01-01, until: 2028-01-01 }
+    - { name: Abby Wason,       from: 2027-01-01, until: 2028-01-01 }
+    - { name: Daniel,           from: 2027-01-01, until: 2028-01-01 }
+    - { name: Kiona,            from: 2027-01-01, until: 2028-01-01 }
+
 # v27.0 — Multi-org Cliniko. Each business has its own Cliniko organisation
 # and API key. Data is fetched per-org and aggregated by the dashboard.
 # The `default: true` org is the fallback when no clinic filter is active
@@ -467,14 +507,13 @@ matrix:
 # New-patient detection
 # Signal 1 (always on): patients whose attended appt type matches an
 # "Initial / New Patient / Assessment" name pattern.
-# Signal 2 (optional, slow): scan /patients for those created in range.
-# Turn on only when you need DVA/NDIS/TAC/NSW WorkCover first-timers
-# counted — they don't have dedicated Initial appt types, so Signal 1
-# misses them. Adds ~20-50 API calls per metric refresh depending on
-# clinic size.
+# v27.17 — Scan patients by created_at in range to match Cliniko's own
+# "new clients" count (Practitioner Performance report). Costs ~20-50
+# extra API calls per refresh and is behind the snapshot cache after
+# the first fetch of a month, so it's cheap in practice.
 new_patients:
-  scan_patients: false
-  scan_patients_max_pages: 20   # hard cap = 2000 records checked
+  scan_patients: true
+  scan_patients_max_pages: 50   # hard cap = 5000 records checked
 
 # Rate limiting
 cliniko:
