@@ -180,9 +180,24 @@ def _is_delivered(df: pd.DataFrame) -> pd.Series:
     `archived_at` alone does NOT disqualify — plenty of clinics archive
     completed appointments for tidiness. Only cancellation or DNA removes
     an appointment from the 'delivered' set.
+
+    v27.21 — snapshot round-trip stringifies NaT via ``json.dump
+    (default=str)``, so cancelled_at comes back as the string "NaT"
+    (not NaN). Treat ``""``, ``"NaT"``, ``"None"``, ``"nan"`` and
+    ``"null"`` all as "not cancelled" so PPVA / Cx-DNA / PVA all work
+    on snapshot-loaded data.
     """
-    cancelled = df["cancelled_at"].notna()
-    dna = df["did_not_arrive"].fillna(False).astype(bool)
+    _NULLISH = {"", "nat", "none", "nan", "null"}
+    if df["cancelled_at"].dtype == object:
+        _c = df["cancelled_at"].astype(str).str.lower().str.strip()
+        cancelled = df["cancelled_at"].notna() & ~_c.isin(_NULLISH)
+    else:
+        cancelled = df["cancelled_at"].notna()
+    _d = df["did_not_arrive"]
+    if _d.dtype == object:
+        dna = _d.astype(str).str.lower().isin({"true", "1"})
+    else:
+        dna = _d.fillna(False).astype(bool)
     return ~(cancelled | dna)
 
 
