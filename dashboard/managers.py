@@ -21,7 +21,7 @@ import pandas as pd
 import streamlit as st
 
 from dashboard import kpi_sync
-from dashboard.config import DATA_DIR
+from dashboard.config import DATA_DIR, load_settings
 from dashboard.manual import load_nps, load_punctuality
 
 
@@ -285,8 +285,9 @@ def _clinic_cxdna_for_quarter(clinic: str, year: int, q: int) -> float | None:
 
 
 def _clinic_consults_for_quarter(clinic: str, year: int, q: int) -> int | None:
-    """Sum of individual consults delivered across all months in the quarter.
-    Reads from monthly snapshots."""
+    """Count of delivered appointments at THIS clinic (business) across the
+    quarter, rebuilt from raw ``appointments`` records in each monthly
+    snapshot. A delivered appointment = scheduled − cancelled − dna."""
     from dashboard.snapshots import load_snapshot
     start, end = quarter_bounds(year, q)
     months = []
@@ -296,21 +297,27 @@ def _clinic_consults_for_quarter(clinic: str, year: int, q: int) -> int | None:
         m += 1
         if m == 13:
             m = 1; y += 1
-    total = 0
+
+    delivered = 0
     any_data = False
     for (yy, mm) in months:
         snap = load_snapshot(yy, mm)
         if not snap:
             continue
+        biz_ids = _business_ids_for_clinic(snap, clinic)
+        if not biz_ids:
+            continue
         for org_data in snap.get("organizations", {}).values():
-            metrics = (org_data.get("metrics") or {})
-            for rec in metrics.get("consults", []) or []:
-                v = rec.get("consults_delivered")
-                if v is None: continue
-                try:
-                    total += int(v); any_data = True
-                except Exception: pass
-    return total if any_data else None
+            for a in (org_data.get("metrics") or {}).get("appointments", []) or []:
+                if str(a.get("business_id")) not in biz_ids:
+                    continue
+                any_data = True
+                if a.get("cancelled_at"):
+                    continue
+                if a.get("did_not_arrive") in (True, "True", "true", 1, "1"):
+                    continue
+                delivered += 1
+    return delivered if any_data else None
 
 
 def _consult_growth_yoy(clinic: str, year: int, q: int) -> float | None:
@@ -323,12 +330,12 @@ def _consult_growth_yoy(clinic: str, year: int, q: int) -> float | None:
 
 
 def _clinic_service_hours_for_quarter(clinic: str, year: int, q: int) -> float | None:
-    """Sum of billable service hours across all months in the quarter.
-    Reads from monthly snapshots. (We don't currently split by clinic in
-    the snapshot per-practitioner table, so this aggregates every org — the
-    caller is expected to be looking at a specific clinic, which in practice
-    means one org.)"""
+    """Billable service hours delivered AT THIS CLINIC across the quarter.
+    Rebuilt from the raw ``appointments`` records so Albury / Wodonga /
+    Lavington each get their own number instead of a merged org total.
+    service_hours = sum(ends_at − starts_at) for delivered appointments."""
     from dashboard.snapshots import load_snapshot
+    from datetime import datetime as _dt
     start, end = quarter_bounds(year, q)
     months = []
     y, m = start.year, start.month
@@ -337,21 +344,38 @@ def _clinic_service_hours_for_quarter(clinic: str, year: int, q: int) -> float |
         m += 1
         if m == 13:
             m = 1; y += 1
-    total = 0.0
+
+    total_minutes = 0.0
     any_data = False
     for (yy, mm) in months:
         snap = load_snapshot(yy, mm)
         if not snap:
             continue
+        biz_ids = _business_ids_for_clinic(snap, clinic)
+        if not biz_ids:
+            continue
         for org_data in snap.get("organizations", {}).values():
-            metrics = (org_data.get("metrics") or {})
-            for rec in metrics.get("service_hours", []) or []:
-                v = rec.get("service_hours")
-                if v is None: continue
+            for a in (org_data.get("metrics") or {}).get("appointments", []) or []:
+                if str(a.get("business_id")) not in biz_ids:
+                    continue
+                any_data = True
+                # Delivered only: skip cancelled + DNA.
+                if a.get("cancelled_at"):
+                    continue
+                if a.get("did_not_arrive") in (True, "True", "true", 1, "1"):
+                    continue
+                s, e = a.get("starts_at"), a.get("ends_at")
+                if not s or not e:
+                    continue
                 try:
-                    total += float(v); any_data = True
-                except Exception: pass
-    return total if any_data else None
+                    sd = _dt.fromisoformat(str(s).replace("Z", "+00:00"))
+                    ed = _dt.fromisoformat(str(e).replace("Z", "+00:00"))
+                    total_minutes += (ed - sd).total_seconds() / 60.0
+                except Exception:
+                    continue
+    if not any_data:
+        return None
+    return round(total_minutes / 60.0, 1)
 
 
 def _service_hours_growth_yoy(clinic: str, year: int, q: int) -> float | None:
@@ -604,113 +628,42 @@ def _evaluate_kpi(spec: dict, df: pd.DataFrame, manager: str, clinic: str,
 # UI
 # -------------------------------------------------------------------
 def managers_tab(filters: dict) -> None:
+    """v27.25 — Manager KPIs tab iframes the externally-hosted Manager
+    KPIs site (Netlify + Netlify Function + GitHub-backed per-manager
+    storage, gated by per-manager PIN). The URL is read from
+    settings.yml (``manager_kpis_site_url``) so the Streamlit app stays
+    deployable without hard-coding host names.
+
+    If the URL is not configured, we fall back to embedding the local
+    copy of ``management_kpis.html`` (localStorage only, per-browser —
+    kept as a graceful degradation path for local dev).
+    """
+    import streamlit.components.v1 as components
+    from pathlib import Path
+
     st.subheader("👥 Manager KPIs")
-    st.caption(
-        "Quarterly KPI tracker for each clinic manager. "
-        "Metrics that have a data source (NPS, audits, punctuality, consults, Cx/DNA) "
-        "auto-populate; the rest you fill in on this tab and the entries persist for everyone."
-    )
 
-    today = date.today()
-    assignments = current_assignments(today)
+    settings = load_settings()
+    site_url = str(settings.get("manager_kpis_site_url") or "").strip()
 
-    # Picker: clinic → surfaces the current manager; quarter picker; manager override.
-    clinics = sorted(assignments.keys())
-    if not clinics:
-        st.warning("No manager assignments configured.")
+    if site_url:
+        st.caption(
+            "Sign in with your manager PIN. Data is shared and private to "
+            f"you (and the owner). Direct link: [{site_url}]({site_url})"
+        )
+        components.iframe(site_url, height=1600, scrolling=True)
         return
 
-    col_a, col_b = st.columns([2, 1])
-    with col_a:
-        chosen_clinic = st.selectbox("Clinic", clinics,
-                                       format_func=lambda c: f"{c} — {assignments.get(c, '(no manager)')}")
-    with col_b:
-        quarters = recent_quarters(8, today)
-        q_default_idx = len(quarters) - 1  # current
-        chosen_q = st.selectbox(
-            "Quarter", quarters,
-            index=q_default_idx,
-            format_func=lambda yq: quarter_label(yq[0], yq[1]) + (" (current)" if yq == quarters[-1] else ""),
-        )
-    sel_year, sel_q = chosen_q
-    manager_name = assignments[chosen_clinic]
-    quarter_str = f"{sel_year}-Q{sel_q}"
-
-    df = _load_entries()
-
-    # Compute results per KPI
-    results = []
-    for spec in KPI_SPECS:
-        res = _evaluate_kpi(spec, df, manager_name, chosen_clinic,
-                              quarter_str, sel_year, sel_q)
-        results.append((spec, res))
-
-    met_count = sum(1 for _, r in results if r["status"] == "met")
-    total_kpis = len(results)
-    pending = sum(1 for _, r in results if r["status"] == "pending")
-
-    # Header summary (no $ figures — Matt asked for them to be hidden here).
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Manager", manager_name)
-    c2.metric("Quarter", quarter_label(sel_year, sel_q))
-    c3.metric("KPIs met", f"{met_count} / {total_kpis}",
-              delta=f"{pending} pending" if pending else None, delta_color="off")
-
-    st.markdown("---")
-
-    # Per-KPI cards, two columns
-    for i, (spec, res) in enumerate(results):
-        if i % 2 == 0:
-            cols = st.columns(2)
-        with cols[i % 2]:
-            status_icon = {"met": "✅", "missed": "❌", "pending": "⏳", "partial": "🟡"}.get(res["status"], "·")
-            st.markdown(f"### {status_icon} {spec['title']}")
-            st.caption(f"**Target:** {spec['target_text']}")
-            st.write(res["detail"])
-
-            # Self-entry form for the self/mixed KPIs.
-            subfields = spec.get("subfields") or []
-            if subfields:
-                with st.form(f"form_{spec['key']}_{quarter_str}_{manager_name}",
-                              clear_on_submit=False):
-                    new_vals: dict[str, Any] = {}
-                    for subkey, label, kind in subfields:
-                        current = _get(df, manager_name, quarter_str, spec["key"], subkey, "")
-                        if kind == "int":
-                            default = int(float(current)) if current not in ("", None) else 0
-                            new_vals[subkey] = st.number_input(label, min_value=0, step=1,
-                                                                 value=default,
-                                                                 key=f"inp_{spec['key']}_{subkey}_{quarter_str}")
-                        elif kind == "pct":
-                            default = float(current) if current not in ("", None) else 0.0
-                            new_vals[subkey] = st.number_input(label, min_value=0.0, max_value=100.0,
-                                                                 step=1.0, value=default,
-                                                                 key=f"inp_{spec['key']}_{subkey}_{quarter_str}")
-                        elif kind == "bool":
-                            default = current == "True"
-                            new_vals[subkey] = st.checkbox(label, value=default,
-                                                             key=f"inp_{spec['key']}_{subkey}_{quarter_str}")
-                        else:
-                            new_vals[subkey] = st.text_input(label, value=str(current or ""),
-                                                               key=f"inp_{spec['key']}_{subkey}_{quarter_str}")
-                    if st.form_submit_button("Save"):
-                        for sk, v in new_vals.items():
-                            df = _set(df, manager_name, chosen_clinic, quarter_str,
-                                        spec["key"], sk, v)
-                        _save_entries(df)
-                        st.success("Saved.")
-                        st.rerun()
-
-    # Admin view: show all managers' progress at a glance.
-    st.markdown("---")
-    with st.expander("All managers — this quarter at a glance", expanded=False):
-        rows = []
-        for clinic, mgr in assignments.items():
-            met = 0
-            for spec in KPI_SPECS:
-                r = _evaluate_kpi(spec, df, mgr, clinic, quarter_str, sel_year, sel_q)
-                if r["status"] == "met":
-                    met += 1
-            rows.append({"Clinic": clinic, "Manager": mgr,
-                          "KPIs met": f"{met} / {total_kpis}"})
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    # Fallback: embed the local HTML (per-browser localStorage only).
+    st.caption(
+        "⚠️ Running in local-only mode (per-browser storage). Set "
+        "`manager_kpis_site_url` in settings.yml once the Netlify site is "
+        "deployed to switch to shared, per-manager storage."
+    )
+    html_path = Path(__file__).parent / "management_kpis.html"
+    try:
+        html_content = html_path.read_text(encoding="utf-8")
+    except Exception as e:
+        st.error(f"Could not load management_kpis.html: {e}")
+        return
+    components.html(html_content, height=1600, scrolling=True)

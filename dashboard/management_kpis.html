@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Management KPIs · Enhance Physio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315a89e'/%3E%3Cpath d='M22 18h20v6H28v6h12v6H28v6h14v6H22z' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafdfc;--bgc:#fff;--bgs:#e1f1ef;--ink:#221f1f;--inks:#4a4747;--inkm:#8a8787;--line:#d6e6e3;--lines:#ecf3f1;--p:#15a89e;--ps:#e1f1ef;--pi:#0e7d77;--ac:#d4a04a;--sf:"Fraunces",serif;--sa:"IBM Plex Sans",-apple-system,sans-serif;--mn:"IBM Plex Mono",monospace;--w:#c98a1c;--ws:#f6e8cc;--g:#3d7a5a;--gs:#d2e7d8;--b:#a4444e;--bs:#f0d5d8;--sh:0 1px 2px rgba(34,31,31,.04),0 4px 12px rgba(21,168,158,.06);--shl:0 2px 4px rgba(34,31,31,.06),0 12px 28px rgba(21,168,158,.10)}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font-family:var(--sa);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--sf);font-weight:500;letter-spacing:-.01em;margin:0}
+h1{font-size:32px;line-height:1.1}h2{font-size:22px;line-height:1.2}h3{font-size:16px;line-height:1.3}
+.layout{max-width:1200px;margin:0 auto;padding:32px 28px 80px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:28px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:14px}
+.mark{font-family:var(--sf);font-size:28px;font-weight:500;color:var(--p);letter-spacing:-.01em;line-height:1}
+.mark em{font-style:italic;font-weight:400}
+.sub{color:var(--inkm);font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
+nav.tabs{display:flex;gap:2px;background:var(--bgs);padding:3px;border-radius:10px;flex-wrap:wrap}
+nav.tabs button{background:transparent;border:0;padding:8px 14px;font-family:var(--sa);font-size:13px;font-weight:500;color:var(--inks);cursor:pointer;border-radius:7px;transition:all .15s}
+nav.tabs button:hover{color:var(--ink)}
+nav.tabs button.active{background:var(--bgc);color:var(--pi);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--bgc);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--sh)}
+.card h2{margin-bottom:4px}.card .desc{color:var(--inkm);font-size:13px;margin-bottom:20px}
+.row{display:flex;gap:14px;flex-wrap:wrap}.col{flex:1 1 0;min-width:0}
+label{display:block;font-size:12px;font-weight:600;color:var(--inks);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+input,select,textarea,button{font-family:var(--sa);font-size:14px}
+input[type=text],input[type=date],input[type=number],input[type=password],select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bgc);color:var(--ink);transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--ps)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid var(--line);background:var(--bgc);color:var(--ink);font-weight:500;cursor:pointer;transition:all .15s}
+.btn:hover{border-color:var(--inkm);background:var(--bgs)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--p);color:#fff;border-color:var(--p)}.btn.primary:hover{background:var(--pi);border-color:var(--pi)}
+.btn.danger{color:var(--b);border-color:var(--bs)}.btn.danger:hover{background:var(--bs)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--inks);padding:6px 10px}.btn.ghost:hover{background:var(--bgs);color:var(--ink)}
+.btn.sm{padding:6px 10px;font-size:12px}
+.fdrop{border:2px dashed var(--line);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bgs)}
+.fdrop:hover,.fdrop.dragging{border-color:var(--p);background:var(--ps)}
+.fdrop input[type=file]{display:none}
+.fdrop .icon{font-size:28px;margin-bottom:6px;opacity:.6}
+.fdrop .hint{color:var(--inkm);font-size:12px;margin-top:4px}
+.preview{display:flex;gap:16px;align-items:flex-start;margin-top:14px}
+.preview img{max-width:200px;max-height:280px;border-radius:6px;border:1px solid var(--line)}
+.status{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-top:10px;font-size:13px}
+.status.info{background:var(--ps);color:var(--pi)}
+.status.warn{background:var(--ws);color:#6b4a10}
+.status.error{background:var(--bs);color:#6e2229}
+.status.success{background:var(--gs);color:#2c4a1f}
+.status .spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.local-warn{background:var(--ps);color:var(--pi);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:13px;display:flex;align-items:center;gap:10px;border:1px solid var(--p)}
+.local-warn b{font-weight:600}
+.qe-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:8px}
+.qe-field{padding:14px;background:var(--bgs);border-radius:10px;border:1px solid var(--lines)}
+.qe-field.req{border-color:var(--p);background:var(--ps)}
+.qe-field label{margin-bottom:6px}
+.qe-field .req-tag{font-size:9px;color:var(--p);font-weight:700;background:var(--bgc);padding:1px 5px;border-radius:3px;margin-left:4px}
+.qe-field input{font-size:18px;font-weight:600;text-align:center;font-family:var(--sf)}
+.qe-derived{margin-top:14px;padding:12px 16px;background:var(--ps);border-radius:8px;display:flex;gap:24px;flex-wrap:wrap}
+.qe-derived .item{font-size:12px;color:var(--pi)}
+.qe-derived .item b{font-family:var(--sf);font-size:18px;font-weight:500;display:block;margin-top:2px}
+table.sheet{width:100%;border-collapse:collapse;font-size:13px}
+table.sheet th,table.sheet td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--lines);vertical-align:middle}
+table.sheet th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--inks);font-weight:600;border-bottom:1px solid var(--line);background:var(--bgs)}
+table.sheet th:first-child,table.sheet td:first-child{padding-left:14px}
+table.sheet th:last-child,table.sheet td:last-child{padding-right:14px}
+table.sheet input,table.sheet select{padding:6px 8px;font-size:13px}
+table.sheet td.num{width:32px;color:var(--inkm);font-family:var(--mn);font-size:11px;text-align:right}
+table.sheet .cell-yn{width:78px}.table.sheet .cell-name{width:22%}.table.sheet .actions{width:30px;text-align:center}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.stat{background:var(--bgc);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.stat .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--inkm);font-weight:600;margin-bottom:6px}
+.stat .value{font-family:var(--sf);font-size:32px;font-weight:500;color:var(--pi);line-height:1}
+.stat .sub{font-size:12px;color:var(--inkm);margin-top:4px;font-family:var(--mn)}
+.stat.accent .value{color:var(--ac)}
+.stat.good{border-color:var(--g);background:var(--gs)}.stat.good .value{color:#2c4a1f}
+.stat.bad{border-color:var(--b);background:var(--bs)}.stat.bad .value{color:#6e2229}
+.physio-card{background:var(--bgc);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.physio-card .head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bgs);border-bottom:1px solid var(--line)}
+.physio-card .head h3{display:flex;align-items:center;gap:10px}
+.physio-card .head .pill{font-size:11px;color:var(--inkm);font-family:var(--mn)}
+.physio-card .body{padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:14px}
+.mini-stat .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--inkm);margin-bottom:4px;font-weight:600}
+.mini-stat .value{font-family:var(--sf);font-size:22px;font-weight:500;color:var(--ink);line-height:1}
+.mini-stat .sub{font-family:var(--mn);font-size:11px;color:var(--inkm);margin-top:3px}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-row{display:grid;grid-template-columns:100px 1fr 70px 70px 70px 80px auto;gap:10px;align-items:center;padding:10px 14px;background:var(--bgc);border:1px solid var(--line);border-radius:8px}
+.history-row .date{font-family:var(--mn);font-size:12px;color:var(--inks)}
+.history-row .physio{font-weight:600}
+.history-row .stat-mini{font-family:var(--mn);font-size:12px;color:var(--inks)}
+details.help{margin-top:14px;background:var(--bgs);border-radius:8px;padding:10px 14px;font-size:12px}
+details.help summary{cursor:pointer;font-weight:600;color:var(--inks)}
+details.help p{margin:8px 0;color:var(--inks)}
+.empty{padding:40px;text-align:center;color:var(--inkm);background:var(--bgs);border-radius:10px}
+.empty .em-title{font-family:var(--sf);font-size:18px;margin-bottom:4px;color:var(--inks)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.toolbar .group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bonus-banner{background:linear-gradient(135deg,var(--p) 0%,var(--pi) 100%);color:#fff;border-radius:14px;padding:24px 28px;margin-bottom:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;box-shadow:var(--shl);position:relative;overflow:hidden}
+.bonus-banner::before{content:"";position:absolute;top:-40px;right:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(147,208,202,.45) 0%,transparent 70%);pointer-events:none}
+.bonus-banner .item{position:relative;z-index:1}
+.bonus-banner .label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:6px;font-weight:600}
+.bonus-banner .value{font-family:var(--sf);font-size:36px;font-weight:500;line-height:1}
+.bonus-banner .value.accent{color:#f5d896}
+.bonus-banner .sub{font-size:12px;opacity:.7;margin-top:6px;font-family:var(--mn)}
+.kpi-card{background:var(--bgc);border:1px solid var(--line);border-left:4px solid var(--inkm);border-radius:10px;padding:18px 20px;margin-bottom:12px;transition:border-color .2s}
+.kpi-card.hit{border-left-color:var(--g)}
+.kpi-card.miss{border-left-color:var(--b)}
+.kpi-card.pending{border-left-color:var(--w)}
+.kpi-card.auto{background:linear-gradient(to right,var(--ps) 0%,var(--bgc) 8%)}
+.kpi-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.kpi-head .title{display:flex;align-items:center;gap:10px}
+.kpi-head .title h3{font-family:var(--sf);font-size:18px}
+.kpi-head .target{font-size:12px;color:var(--inkm);font-family:var(--mn)}
+.kpi-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.kpi-status.hit{background:var(--gs);color:#2c4a1f}
+.kpi-status.miss{background:var(--bs);color:#6e2229}
+.kpi-status.pending{background:var(--ws);color:#6b4a10}
+.kpi-status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.kpi-status .bonus{opacity:.7;font-family:var(--mn);margin-left:2px}
+.kpi-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.kpi-metric{padding:12px 14px;background:var(--bgs);border-radius:8px;border:1px solid transparent}
+.kpi-metric.hit{background:var(--gs)}.kpi-metric.miss{background:var(--bs)}
+.kpi-metric .m-label{font-size:11px;color:var(--inks);font-weight:600;margin-bottom:4px}
+.kpi-metric .m-target{font-size:11px;color:var(--inkm);font-family:var(--mn);margin-bottom:8px}
+.kpi-metric .m-input{display:flex;align-items:center;gap:6px}
+.kpi-metric .m-input input{padding:6px 8px;font-size:14px;max-width:100px}
+.kpi-metric .m-input .unit{font-family:var(--mn);font-size:12px;color:var(--inkm)}
+.kpi-metric .m-auto-value{font-family:var(--sf);font-size:22px;font-weight:500;color:var(--ink)}
+.kpi-metric .m-auto-detail{font-family:var(--mn);font-size:11px;color:var(--inkm);margin-top:2px}
+.kpi-metric.binary .m-input{gap:10px}
+.kpi-metric.binary label.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;margin:0}
+.kpi-metric.binary input[type=radio]{width:auto}
+.auto-badge{display:inline-flex;align-items:center;gap:4px;background:var(--ps);color:var(--pi);padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.auto-badge::before{content:"✦"}
+.kpi-note{margin-top:12px;padding:10px 12px;background:var(--bgs);border-radius:6px;font-size:12px;color:var(--inks)}
+.qnav{display:flex;align-items:center;gap:6px}
+.qnav .label{padding:0 12px;font-family:var(--sf);font-size:18px;min-width:140px;text-align:center}
+.fb-fields{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:720px){.fb-fields{grid-template-columns:1fr}}
+.fb-field textarea{min-height:110px;resize:vertical;line-height:1.55}
+.fb-field--wide{grid-column:1/-1}
+.fb-status{margin-top:16px;font-size:12px;color:var(--inkm);font-style:italic}
+.section-tabs{display:flex;gap:2px;background:var(--bgs);padding:3px;border-radius:8px;margin-bottom:14px;width:fit-content}
+.section-tabs button{background:transparent;border:0;padding:6px 12px;font-size:12px;font-weight:500;color:var(--inks);cursor:pointer;border-radius:5px}
+.section-tabs button.active{background:var(--bgc);color:var(--pi);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.add-row-btn{width:100%;margin-top:10px;padding:8px;background:var(--bgs);border:1px dashed var(--line);border-radius:8px;color:var(--inks);cursor:pointer;font-size:12px}
+.add-row-btn:hover{background:var(--ps);color:var(--pi);border-color:var(--p)}
+.totals-row{display:flex;gap:20px;padding:16px;background:var(--bgs);border-radius:8px;margin-top:16px}.totals-row .col{flex:1}.totals-row label{margin-bottom:4px}
+@media(max-width:720px){header.top{flex-direction:column;align-items:flex-start}.history-row{grid-template-columns:1fr}.preview{flex-direction:column}.preview img{max-width:100%}.bonus-banner{padding:18px}.bonus-banner .value{font-size:28px}}
+
+/* Audit entry rows */
+.audit-entry{margin-top:14px;padding:14px;background:var(--bgs);border-radius:10px;border:1px solid var(--lines)}
+.audit-entry-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.audit-entry-head h4{font-family:var(--sf);font-size:14px;font-weight:500;margin:0;color:var(--ink)}
+.audit-entry-summary{font-family:var(--mn);font-size:12px;color:var(--inks);background:var(--bgc);padding:4px 10px;border-radius:6px;border:1px solid var(--line)}
+.audit-rows{display:flex;flex-direction:column;gap:8px}
+.audit-row{display:grid;grid-template-columns:1fr 140px;gap:14px;align-items:center;padding:12px 14px;background:var(--bgc);border:1px solid var(--line);border-left:3px solid var(--inkm);border-radius:8px}
+.audit-row.manager{background:var(--ps);border-left-color:var(--p)}
+.audit-row.hit{border-left-color:var(--g)}
+.audit-row.miss{border-left-color:var(--b)}
+.audit-row.pending{border-left-color:var(--inkm)}
+.audit-name{display:flex;flex-direction:column;gap:2px}
+.audit-name-label{font-weight:600;font-size:14px;color:var(--ink)}
+.audit-name-tag{font-size:10px;color:var(--p);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.audit-pct-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.audit-pct-wrap input{width:90px;text-align:center;font-family:var(--sf);font-size:18px;font-weight:500;padding:8px 10px}
+.audit-unit{font-family:var(--mn);font-size:13px;color:var(--inkm)}
+@media(max-width:720px){.audit-row{grid-template-columns:1fr}.audit-pct-wrap{justify-content:flex-start}}
+
+/* Audit page-specific */
+.audit-q-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--bgc);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.audit-q-table th,.audit-q-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--lines)}
+.audit-q-table thead th{background:var(--bgs);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--inks);font-weight:600;border-bottom:1px solid var(--line)}
+.audit-q-table tbody tr:last-child td{border-bottom:0}
+.audit-q-table tbody tr.current{background:var(--ps)}
+.audit-q-table .empty-cell{color:var(--inkm)}
+.audit-q-table .pct-cell{font-family:var(--sf);font-weight:500;font-size:14px}
+.audit-q-table .pct-cell.hit{color:#1f4a32}
+.audit-q-table .pct-cell.miss{color:#6e2229}
+.audit-q-table .month-link{background:transparent;border:0;color:var(--p);text-decoration:underline;cursor:pointer;font-family:inherit;font-size:13px;padding:0}
+.audit-q-table .month-link:hover{color:var(--pi)}
+
+/* Audits link card on scorecard */
+.audit-link-card{margin-top:14px;padding:12px 14px;background:var(--bgs);border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--inks)}
+.audit-link-card .alc-summary{display:flex;gap:14px;flex-wrap:wrap}
+.audit-link-card .alc-summary span{font-family:var(--mn);font-size:12px}
+.audit-link-card .alc-summary b{font-family:var(--sa);font-weight:600;color:var(--ink);font-size:13px}
+
+
+.note-add-bar{display:grid;grid-template-columns:1fr 110px 140px 150px auto;gap:8px;margin-bottom:14px;padding:14px;background:var(--bgs);border-radius:10px;border:1px solid var(--lines)}
+.note-add-bar input,.note-add-bar select{padding:8px 10px;font-size:13px}
+.note-stats{display:flex;gap:14px;flex-wrap:wrap;padding:10px 14px;background:var(--bgc);border:1px solid var(--line);border-radius:8px;margin-bottom:14px;font-size:12px;color:var(--inks)}
+.note-stats .ns-item{display:inline-flex;align-items:center;gap:6px}
+.note-stats .ns-item b{font-family:var(--sf);font-size:16px;font-weight:500;color:var(--ink)}
+.note-stats .ns-overdue b{color:var(--b)}
+.note-stats .ns-soon b{color:var(--w)}
+.notes-list{display:flex;flex-direction:column;gap:8px}
+.note-card{display:grid;grid-template-columns:24px 1fr auto;gap:12px;padding:12px 14px;background:var(--bgc);border:1px solid var(--line);border-left:3px solid var(--inkm);border-radius:8px;align-items:flex-start;transition:background .15s,border-color .15s}
+.note-card:hover{background:var(--bgs)}
+.note-card.high{border-left-color:var(--b)}
+.note-card.med{border-left-color:var(--p)}
+.note-card.low{border-left-color:var(--inkm)}
+.note-card.done{opacity:.55}
+.note-card.done .note-text{text-decoration:line-through;color:var(--inkm)}
+.note-card.overdue:not(.done){background:#fef6f6}
+.note-check{width:20px;height:20px;border:2px solid var(--line);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--bgc);transition:all .15s;flex-shrink:0;margin-top:2px}
+.note-check:hover{border-color:var(--p)}
+.note-check.checked{background:var(--p);border-color:var(--p)}
+.note-check.checked::after{content:"✓";color:#fff;font-size:13px;font-weight:700;line-height:1}
+.note-body{min-width:0}
+.note-text{font-size:14px;line-height:1.4;color:var(--ink);word-wrap:break-word}
+.note-text[contenteditable=true]{outline:1px solid var(--p);outline-offset:2px;border-radius:4px;padding:1px 3px}
+.note-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:11px;color:var(--inkm);font-family:var(--mn);align-items:center}
+.note-meta .npill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--sa);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.note-meta .npill.high{background:var(--bs);color:#6e2229}
+.note-meta .npill.tag{background:var(--ps);color:var(--pi)}
+.note-meta .npill.due{background:var(--bgs);color:var(--inks)}
+.note-meta .npill.due.overdue{background:var(--bs);color:#6e2229}
+.note-meta .npill.due.soon{background:var(--ws);color:#6b4a10}
+.note-meta .npill.done{background:var(--gs);color:#1f4a32}
+.note-actions{display:flex;gap:2px;opacity:0;transition:opacity .15s}
+.note-card:hover .note-actions{opacity:1}
+.note-actions button{background:transparent;border:0;padding:4px 6px;color:var(--inkm);cursor:pointer;font-size:13px;border-radius:4px}
+.note-actions button:hover{background:var(--bgs);color:var(--ink)}
+.note-actions button.del:hover{color:var(--b)}
+@media(max-width:720px){.note-add-bar{grid-template-columns:1fr;gap:6px}.note-actions{opacity:1}}
+
+
+
+/* Referral updates / follow-ups */
+.r-updates{margin-top:10px;padding:10px 12px;background:var(--bgs);border-radius:8px;border-left:3px solid var(--p)}
+.r-updates-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.r-updates-head h5{font-family:var(--sa);font-size:11px;font-weight:600;color:var(--inks);text-transform:uppercase;letter-spacing:.06em;margin:0}
+.r-update{padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--inks)}
+.r-update:last-child{border-bottom:0;padding-bottom:0}
+.r-update:first-child{padding-top:0}
+.r-update-meta{font-family:var(--mn);font-size:11px;color:var(--inkm);margin-bottom:3px;display:flex;justify-content:space-between;align-items:center}
+.r-update-text{white-space:pre-wrap;line-height:1.45}
+.r-update-del{background:transparent;border:0;color:var(--inkm);cursor:pointer;font-size:12px;padding:0 4px}
+.r-update-del:hover{color:var(--b)}
+.r-update-form{display:flex;gap:8px;margin-top:8px}
+.r-update-form input[type=date]{flex-basis:140px;flex-grow:0;padding:6px 8px;font-size:12px}
+.r-update-form input[type=text]{flex:1;padding:6px 8px;font-size:13px}
+.r-update-form button{padding:6px 10px;font-size:12px}
+.ref-form{background:var(--bgs);border:1px solid var(--lines);border-radius:10px;padding:18px}
+.ref-form h3{font-family:var(--sf);font-size:16px;margin:0}
+.ref-form textarea{min-height:60px;resize:vertical}
+.ref-tags{display:flex;gap:8px;flex-wrap:wrap;padding-top:6px}
+.tag-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bgc);border:1px solid var(--line);border-radius:999px;cursor:pointer;font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;margin:0;color:var(--inks)}
+.tag-toggle:has(input:checked){background:var(--ps);border-color:var(--p);color:var(--pi)}
+.tag-toggle input{margin:0;width:auto}
+.ref-entry{background:var(--bgc);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:grid;grid-template-columns:90px 1fr auto;gap:14px;align-items:flex-start}
+.ref-entry .rdate{font-family:var(--mn);font-size:11px;color:var(--inks);background:var(--bgs);padding:6px 8px;border-radius:6px;text-align:center;line-height:1.3}
+.ref-entry .rdate .day{font-family:var(--sf);font-size:18px;font-weight:500;color:var(--pi);display:block}
+.ref-entry .rmain h4{font-family:var(--sf);font-size:16px;font-weight:500;margin:0 0 2px;color:var(--ink)}
+.ref-entry .rmain .rrole{font-size:12px;color:var(--inkm);margin-bottom:6px}
+.ref-entry .rmain .routcome{font-size:13px;color:var(--inks);line-height:1.45;margin-bottom:8px;white-space:pre-wrap}
+.ref-entry .rmain .rtags{display:flex;gap:6px;flex-wrap:wrap}
+.rtag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:2px 8px;border-radius:999px}
+.rtag.new{background:var(--gs);color:#2c4a1f}
+.rtag.newref{background:var(--ws);color:#6b4a10}
+.rtag.med{background:var(--ps);color:var(--pi)}
+.ref-entry .ractions{display:flex;gap:4px}
+@media(max-width:720px){.ref-entry{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <header class="top">
+    <div class="brand"><div>
+      <div class="mark">Enhance <em>Physio</em></div>
+      <div class="sub">Management KPIs</div>
+    </div></div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="scorecard" class="active">KPI Scorecard</button>
+      <button data-tab="upload">Add sheet</button>
+      <button data-tab="dashboard">Recall dashboard</button>
+      <button data-tab="referrals">Referrals</button>
+      <button data-tab="audits">Audits</button>
+      <button data-tab="notes">Notes</button>
+      <button data-tab="feedback">Feedback</button>
+      <button data-tab="history">All sheets</button>
+      <button data-tab="settings">Settings</button>
+    </nav>
+  </header>
+
+  <div id="local-warn" class="local-warn" style="display:none">
+    💾 <div><b>Running standalone — data saves to this browser.</b> Quick entry, scorecard, and the referral diary all work as normal. The AI photo reader needs an Anthropic API key (Settings → AI image reader).</div>
+  </div>
+
+  <!-- ============ SCORECARD ============ -->
+  <section class="panel active" id="panel-scorecard">
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Quarterly KPI scorecard</h2>
+          <div class="desc" style="margin-top:4px;margin-bottom:0">10 KPIs × $375 each = up to $3,750 per quarter performance bonus.</div>
+        </div>
+        <div class="qnav">
+          <button class="btn sm" id="q-prev">←</button>
+          <span class="label" id="q-label">—</span>
+          <button class="btn sm" id="q-next">→</button>
+        </div>
+      </div>
+      <div class="bonus-banner">
+        <div class="item">
+          <div class="label">This quarter</div>
+          <div class="value accent" id="bn-q-amt">$0</div>
+          <div class="sub" id="bn-q-detail">0 / 10 KPIs hit</div>
+        </div>
+        <div class="item">
+          <div class="label">Year-to-date earned</div>
+          <div class="value" id="bn-ytd-amt">$5,000</div>
+          <div class="sub" id="bn-ytd-detail">$5,000 guaranteed + $0 performance</div>
+        </div>
+        <div class="item">
+          <div class="label">Annual maximum</div>
+          <div class="value">$20,000</div>
+          <div class="sub">$5K guaranteed + $15K performance</div>
+        </div>
+      </div>
+      <div id="kpi-list"></div>
+      <details class="help">
+        <summary>How does this work?</summary>
+        <p><strong>Recall Effectiveness</strong> is auto-calculated from sheets you add — total recalls % = completed ÷ due; conversion % = rebooked ÷ completed.</p>
+        <p><strong>Other KPIs</strong> are manual entry per quarter. Values save as you change them.</p>
+        <p>A KPI group is "hit" when all its sub-metrics meet target. Each hit earns $375 for the quarter.</p>
+        <p>Quarters: Q1 Jan–Mar, Q2 Apr–Jun, Q3 Jul–Sep, Q4 Oct–Dec.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============ ADD SHEET ============ -->
+  <section class="panel" id="panel-upload">
+    <div class="card">
+      <h2>Add a recall sheet</h2>
+      <div class="desc">Pick the physio and date, then enter the totals. Photo upload and patient detail are optional.</div>
+
+      <div class="row">
+        <div class="col">
+          <label for="up-physio">Physio</label>
+          <select id="up-physio"></select>
+        </div>
+        <div class="col">
+          <label for="up-date">Date on sheet</label>
+          <input type="date" id="up-date">
+        </div>
+      </div>
+
+      <div style="height:18px"></div>
+
+      <div class="section-tabs" id="entry-tabs">
+        <button data-mode="quick" class="active">⚡ Quick entry</button>
+        <button data-mode="photo">📷 Photo (AI)</button>
+        <button data-mode="detail">📋 Patient detail</button>
+      </div>
+
+      <!-- QUICK ENTRY -->
+      <div id="mode-quick">
+        <div class="qe-grid">
+          <div class="qe-field req">
+            <label>Number of recalls <span class="req-tag">REQ</span></label>
+            <input type="number" id="qe-total" min="0" placeholder="—">
+          </div>
+          <div class="qe-field req">
+            <label>Recalls completed <span class="req-tag">REQ</span></label>
+            <input type="number" id="qe-completed" min="0" placeholder="—">
+          </div>
+          <div class="qe-field req">
+            <label>Number rebooked <span class="req-tag">REQ</span></label>
+            <input type="number" id="qe-rebooked" min="0" placeholder="—">
+          </div>
+          <div class="qe-field">
+            <label>Number reached</label>
+            <input type="number" id="qe-reached" min="0" placeholder="optional">
+          </div>
+          <div class="qe-field">
+            <label>D/C count</label>
+            <input type="number" id="qe-dc" min="0" placeholder="optional">
+          </div>
+          <div class="qe-field">
+            <label>Recalls added back</label>
+            <input type="number" id="qe-added" min="0" placeholder="optional">
+          </div>
+        </div>
+        <div class="qe-derived" id="qe-derived" style="display:none">
+          <div class="item">Total recalls<br><b id="d-completion">—</b></div>
+          <div class="item">Conversion<br><b id="d-conversion">—</b></div>
+          <div class="item">Reach rate<br><b id="d-reach">—</b></div>
+        </div>
+      </div>
+
+      <!-- PHOTO -->
+      <div id="mode-photo" style="display:none">
+        <div class="fdrop" id="fdrop">
+          <input type="file" id="finput" accept="image/png,image/jpeg,image/jpg,image/webp">
+          <div class="icon">📄</div>
+          <div><strong>Drop a photo here, or click to choose</strong></div>
+          <div class="hint">PNG, JPG, or WEBP — phone photo is fine, even sideways</div>
+        </div>
+        <div id="preview-area" style="display:none">
+          <div class="preview">
+            <img id="preview-img" alt="Sheet preview">
+            <div style="flex:1">
+              <button class="btn primary" id="parse-btn">✨ Read sheet with AI</button>
+              <div id="parse-status"></div>
+              <p style="font-size:12px;color:var(--inkm);margin-top:10px">After reading, results fill in Quick entry and Patient detail. You can edit either before saving.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATIENT DETAIL -->
+      <div id="mode-detail" style="display:none">
+        <p style="font-size:13px;color:var(--inkm);margin:0 0 10px">Optional — patient-by-patient detail. Quick entry totals are derived from these rows when present.</p>
+        <table class="sheet">
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th class="cell-name">Name</th>
+              <th class="cell-yn">Recalled</th>
+              <th class="cell-yn">Answered</th>
+              <th class="cell-yn">Rebooked</th>
+              <th>Comment</th>
+              <th class="actions"></th>
+            </tr>
+          </thead>
+          <tbody id="rows-body"></tbody>
+        </table>
+        <button class="add-row-btn" id="add-row-btn">+ Add row</button>
+        <div class="totals-row">
+          <div class="col">
+            <label for="ex-dc">D/C count</label>
+            <input type="number" id="ex-dc" min="0" value="0">
+          </div>
+          <div class="col">
+            <label for="ex-added">Recalls added back</label>
+            <input type="number" id="ex-added" min="0" value="0">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn" id="cancel-btn">Clear</button>
+        <button class="btn primary" id="save-btn">Save sheet</button>
+      </div>
+      <div id="save-status"></div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="panel" id="panel-dashboard">
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Recall dashboard</h2>
+          <div class="desc" style="margin-top:4px;margin-bottom:0">Targets: total recalls &gt;90%, conversion rate &gt;20%.</div>
+        </div>
+        <div class="group">
+          <label style="margin:0">Quarter</label>
+          <select id="quarter-select" style="width:auto;min-width:160px"></select>
+        </div>
+      </div>
+      <div id="dashboard-overall" class="stat-grid"></div>
+      <div style="height:24px"></div>
+      <h3 style="margin-bottom:12px">By physio</h3>
+      <div id="dashboard-physios"></div>
+    </div>
+  </section>
+
+  <!-- ============ REFERRALS ============ -->
+  <section class="panel" id="panel-referrals">
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Referral diary</h2>
+          <div class="desc" style="margin-top:4px;margin-bottom:0">Running log of contacts and meetings. Targets auto-calculate against the Referral Development KPI.</div>
+        </div>
+        <div class="qnav">
+          <button class="btn sm" id="rq-prev">←</button>
+          <span class="label" id="rq-label">—</span>
+          <button class="btn sm" id="rq-next">→</button>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="ref-stats"></div>
+
+      <div style="height:24px"></div>
+
+      <div id="ref-form-card" class="ref-form">
+        <h3 id="ref-form-title">Add entry</h3>
+        <div class="row" style="margin-top:12px">
+          <div class="col" style="flex-basis:160px;flex-grow:0">
+            <label for="rf-date">Date</label>
+            <input type="date" id="rf-date">
+          </div>
+          <div class="col">
+            <label for="rf-name">Name</label>
+            <input type="text" id="rf-name" placeholder="Dr Sam Lee, Coach Jenny, etc.">
+          </div>
+          <div class="col">
+            <label for="rf-role">Role / specialty</label>
+            <input type="text" id="rf-role" placeholder="GP, Sports physician, PT, Pilates instructor…">
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="col">
+            <label for="rf-org">Organisation (optional)</label>
+            <input type="text" id="rf-org" placeholder="Albury Medical Centre">
+          </div>
+          <div class="col" style="flex-basis:340px;flex-grow:0">
+            <label>Tags</label>
+            <div class="ref-tags">
+              <label class="tag-toggle"><input type="checkbox" id="rf-new"> New contact</label>
+              <label class="tag-toggle"><input type="checkbox" id="rf-newref"> New referrer</label>
+              <label class="tag-toggle"><input type="checkbox" id="rf-med" checked> Medical / health field</label>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label for="rf-outcome">Outcome / notes</label>
+          <textarea id="rf-outcome" placeholder="Lunch meeting at clinic — happy to refer sports clients. Following up with brochures next week."></textarea>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn ghost" id="rf-cancel" style="display:none">Cancel edit</button>
+          <button class="btn primary" id="rf-save">Add to diary</button>
+        </div>
+      </div>
+
+      <div style="height:24px"></div>
+      <h3 style="margin-bottom:12px">Diary entries</h3>
+      <div id="ref-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ AUDITS ============ -->
+  <section class="panel" id="panel-audits">
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Documentation audits</h2>
+          <div class="desc" style="margin-top:4px;margin-bottom:0">Logged monthly. Quarterly average rolls up to the KPI scorecard.</div>
+        </div>
+        <div class="qnav">
+          <button class="btn sm" id="am-prev">←</button>
+          <span class="label" id="am-label">—</span>
+          <button class="btn sm" id="am-next">→</button>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="audit-quarter-stats"></div>
+
+      <div style="height:18px"></div>
+      <h3 id="audit-month-title" style="margin-bottom:10px">—</h3>
+      <div class="audit-rows" id="audit-month-rows"></div>
+
+      <div style="height:18px"></div>
+      <h3 style="margin-bottom:10px">Quarterly breakdown</h3>
+      <div id="audit-quarter-table"></div>
+    </div>
+  </section>
+
+  <!-- ============ NOTES ============ -->
+  <section class="panel" id="panel-notes">
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Catch-up notes</h2>
+          <div class="desc" style="margin-top:4px;margin-bottom:0">Things to do, follow up on, or remember. Tick them off as you go.</div>
+        </div>
+        <div class="group">
+          <div class="section-tabs" id="notes-filter-tabs">
+            <button data-filter="open" class="active">Open</button>
+            <button data-filter="done">Done</button>
+            <button data-filter="all">All</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-add-bar">
+        <input type="text" id="note-text" placeholder="What needs catching up on? (e.g. 'Email Dr Khan re: shoulder pathway')">
+        <select id="note-priority" title="Priority">
+          <option value="med">Normal</option>
+          <option value="high">⚑ High</option>
+          <option value="low">Low</option>
+        </select>
+        <input type="text" id="note-tag" placeholder="Tag (optional)" list="note-tag-list">
+        <datalist id="note-tag-list"></datalist>
+        <input type="date" id="note-due" title="Due date (optional)">
+        <button class="btn primary" id="note-add-btn">Add</button>
+      </div>
+
+      <div class="note-stats" id="note-stats"></div>
+
+      <div id="notes-list" class="notes-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ FEEDBACK ============ -->
+  <section class="panel" id="panel-feedback">
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Quarterly notes &amp; feedback</h2>
+          <div class="desc" style="margin-top:4px;margin-bottom:0">A place to record how the quarter went. Saves automatically per quarter as you type.</div>
+        </div>
+        <div class="qnav">
+          <button class="btn sm" id="fb-prev">←</button>
+          <span class="label" id="fb-label">—</span>
+          <button class="btn sm" id="fb-next">→</button>
+        </div>
+      </div>
+
+      <div class="fb-fields">
+        <div class="fb-field">
+          <label for="fb-positives">Positives</label>
+          <textarea id="fb-positives" rows="4" placeholder="What went well this quarter?"></textarea>
+        </div>
+        <div class="fb-field">
+          <label for="fb-improvements">Improvements</label>
+          <textarea id="fb-improvements" rows="4" placeholder="What could be done better?"></textarea>
+        </div>
+        <div class="fb-field">
+          <label for="fb-concerns">Concerns</label>
+          <textarea id="fb-concerns" rows="4" placeholder="Anything that needs attention or raising?"></textarea>
+        </div>
+        <div class="fb-field">
+          <label for="fb-focus">Focus for next quarter</label>
+          <textarea id="fb-focus" rows="4" placeholder="Priorities and goals for the quarter ahead."></textarea>
+        </div>
+        <div class="fb-field fb-field--wide">
+          <label for="fb-other">Other</label>
+          <textarea id="fb-other" rows="4" placeholder="Anything else worth recording — discussion points, agreements, follow-ups."></textarea>
+        </div>
+      </div>
+
+      <div class="fb-status" id="fb-status">No notes yet for this quarter</div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY ============ -->
+  <section class="panel" id="panel-history">
+    <div class="card">
+      <div class="toolbar">
+        <div><h2>All sheets</h2><div class="desc" style="margin-top:4px;margin-bottom:0">Every recall sheet you've saved.</div></div>
+        <div class="group">
+          <label style="margin:0">Physio</label>
+          <select id="history-filter" style="width:auto;min-width:140px"><option value="">All</option></select>
+        </div>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="panel" id="panel-settings">
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="desc">Manage physios, the AI reader, and your data.</div>
+
+      <h3 style="margin-top:20px;margin-bottom:10px">Physios tracked</h3>
+      <div id="physios-editor" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <div style="margin-top:10px;display:flex;gap:8px">
+        <input type="text" id="new-physio-name" placeholder="Add physio name" style="flex:1">
+        <button class="btn" id="add-physio-btn">Add</button>
+      </div>
+
+      <h3 style="margin-top:28px;margin-bottom:10px">AI image reader</h3>
+      <p style="font-size:12px;color:var(--inkm);margin-top:0">Inside Claude.ai, AI reading works automatically. Running this file from your Downloads? Paste an Anthropic API key here to enable it locally.</p>
+      <div class="row">
+        <div class="col">
+          <label for="api-key">Anthropic API key (optional)</label>
+          <input type="password" id="api-key" placeholder="sk-ant-...">
+        </div>
+      </div>
+
+      <h3 style="margin-top:28px;margin-bottom:10px">Data</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="export-btn">⬇ Export all data</button>
+        <button class="btn" id="import-btn">⬆ Import data</button>
+        <input type="file" id="import-file" accept="application/json" style="display:none">
+        <button class="btn danger" id="reset-btn">Reset everything</button>
+      </div>
+
+      <details class="help" style="margin-top:24px">
+        <summary>About the bonus calculation</summary>
+        <p>$5,000/yr guaranteed + $375 per KPI hit per quarter, max $20,000/yr. 10 KPI groups × 4 quarters × $375 = $15,000 max performance.</p>
+        <p>A KPI group counts as "hit" only when all its sub-metrics meet target.</p>
+      </details>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// === STORAGE POLYFILL ===
+// When this file runs inside Claude.ai, `window.storage` is provided by the host.
+// When it's downloaded and run as a standalone page, we fall back to localStorage
+// so all data still saves between sessions (per browser, per device).
+if (typeof window.storage === 'undefined' || !window.storage || typeof window.storage.get !== 'function') {
+  const LS = window.localStorage;
+  window.storage = {
+    async get(key){
+      const v = LS.getItem(key);
+      if (v == null) throw new Error('not found');
+      return { key, value: v };
+    },
+    async set(key, value){
+      LS.setItem(key, value);
+      return { key, value };
+    },
+    async delete(key){
+      const had = LS.getItem(key) !== null;
+      LS.removeItem(key);
+      return { key, deleted: had };
+    },
+    async list(prefix){
+      const keys = [];
+      for (let i = 0; i < LS.length; i++){
+        const k = LS.key(i);
+        if (!prefix || k.startsWith(prefix)) keys.push(k);
+      }
+      return { keys, prefix };
+    }
+  };
+  window.__storageLocal = true; // flag: we're using localStorage
+}
+
+const DEFAULT_PHYSIOS = ['Alesha','Jayde','Dave','Mackensey','Seb','Ben'];
+const SHEET_PREFIX = 'sheet:';
+const KPI_PREFIX = 'kpi:';
+const REF_PREFIX = 'ref:';
+const NOTE_PREFIX = 'note:';
+const AUDIT_PREFIX = 'audit:';
+const FEEDBACK_PREFIX = 'feedback:';
+const SETTINGS_KEY = 'meta:settings';
+const BONUS_PER_KPI = 375;
+const TOTAL_KPI_GROUPS = 10;
+const GUARANTEED_ANNUAL = 5000;
+
+const KPI_GROUPS = [
+  { id:'referral', name:'Referral Development', blurb:'12 total contacts (6 new); 2 new referrers; >75% from medical/health field', auto:true,
+    metrics:[
+      {id:'total_contacts',label:'Total contacts',target:12,op:'>=',unit:'count', auto:'ref_total'},
+      {id:'new_contacts',label:'New contacts',target:6,op:'>=',unit:'count', auto:'ref_new'},
+      {id:'new_referrers',label:'New referrers',target:2,op:'>=',unit:'count', auto:'ref_new_ref'},
+      {id:'pct_medical',label:'% from medical/health',target:75,op:'>',unit:'%', auto:'ref_pct_medical'}]},
+  { id:'reputation', name:'Clinic Reputation', blurb:'NPS ≥ 80%; 10+ new Google reviews per quarter',
+    metrics:[{id:'nps',label:'NPS score',target:80,op:'>=',unit:'%'},
+             {id:'reviews',label:'New Google reviews',target:10,op:'>=',unit:'count'}]},
+  { id:'staff', name:'Staff Satisfaction', blurb:'Staff-specific satisfaction score ≥ 80%',
+    metrics:[{id:'score',label:'Satisfaction score',target:80,op:'>=',unit:'%'}]},
+  { id:'consults', name:'Consult Growth', blurb:'≥5% YoY growth (individual consults, excludes groups)',
+    metrics:[{id:'yoy',label:'YoY growth',target:5,op:'>=',unit:'%'}]},
+  { id:'cancellation', name:'Cancellation / DNA Rates', blurb:'≤12% Albury',
+    metrics:[{id:'albury',label:'Albury rate',target:12,op:'<=',unit:'%'}]},
+  { id:'recall', name:'Recall Effectiveness', blurb:'Total recalls > 90%, conversion rate > 20%', auto:true,
+    metrics:[{id:'total_recalls',label:'Total recalls',target:90,op:'>',unit:'%',auto:'completion'},
+             {id:'conversion',label:'Conversion rate',target:20,op:'>',unit:'%',auto:'conversion'}]},
+  { id:'audits', name:'Documentation / Audits', blurb:'≥90% individual audit compliance, then group compliance', auto:true,
+    metrics:[{id:'individual',label:'Individual audit compliance',target:90,op:'>=',unit:'%', auto:'audit_individual'},
+             {id:'group',label:'Group compliance',target:90,op:'>=',unit:'%', auto:'audit_group'}]},
+  { id:'diary', name:'Diary Management', blurb:'Approved in advance, initialled, not end of day',
+    metrics:[{id:'compliance',label:'Compliant this quarter',target:'yes',unit:'binary'}]},
+  { id:'punctuality', name:'Punctuality', blurb:'Arrive ≥10 mins before shift; ≥90% on-time patient starts',
+    metrics:[{id:'early',label:'Arriving ≥10 mins early',target:'yes',unit:'binary'},
+             {id:'on_time',label:'On-time patient starts',target:90,op:'>=',unit:'%'}]},
+  { id:'responsiveness', name:'Responsiveness', blurb:'Internal: ≤2 hours; External (BCC): same day',
+    metrics:[{id:'internal',label:'Internal ≤2 hrs',target:'yes',unit:'binary'},
+             {id:'external',label:'External BCC same day',target:'yes',unit:'binary'}]},
+];
+
+let state = {
+  physios:[...DEFAULT_PHYSIOS], apiKey:'',
+  sheets:[], scorecardQuarter:null, kpiValues:{},
+  draft:{ rows:[], dc:0, added:0 }, currentImage:null,
+  entryMode:'quick',
+  referrals:[], referralsQuarter:null, editingRefId:null,
+  notes:[], notesFilter:'open',
+  audits:{},  // {month "YYYY-MM": {physioName: {pct, notes}, _manager: {pct, notes}}}
+  auditsMonth:null,
+  feedback:{}, feedbackQuarter:null,  // {quarter "YYYY-QN": {wins, challenges, focus, notes}}
+};
+
+// === STORAGE ===
+async function sgGet(k){try{const r=await window.storage.get(k);return r?r.value:null}catch{return null}}
+async function sgSet(k,v){try{await window.storage.set(k,typeof v==='string'?v:JSON.stringify(v));return true}catch(e){console.error(e);return false}}
+async function sgDel(k){try{await window.storage.delete(k);return true}catch{return false}}
+async function sgList(p){try{const r=await window.storage.list(p);return r&&r.keys?r.keys:[]}catch{return[]}}
+
+async function loadSettings(){
+  const v = await sgGet(SETTINGS_KEY);
+  if(v){try{const s=JSON.parse(v);if(Array.isArray(s.physios)&&s.physios.length)state.physios=s.physios;if(typeof s.apiKey==='string')state.apiKey=s.apiKey}catch{}}
+}
+async function saveSettings(){return sgSet(SETTINGS_KEY,{physios:state.physios,apiKey:state.apiKey})}
+
+async function loadAllSheets(){
+  const keys = await sgList(SHEET_PREFIX);
+  const out = [];
+  for(const k of keys){const v=await sgGet(k);if(v){try{out.push({...JSON.parse(v),_key:k})}catch{}}}
+  out.sort((a,b)=>(b.dateISO||'').localeCompare(a.dateISO||''));
+  state.sheets=out;return out;
+}
+async function loadAllKPIs(){
+  const keys = await sgList(KPI_PREFIX);
+  const out = {};
+  for(const k of keys){const v=await sgGet(k);if(v){try{out[k.slice(KPI_PREFIX.length)]=JSON.parse(v)}catch{}}}
+  state.kpiValues=out;return out;
+}
+async function saveKPIQuarter(q){return sgSet(KPI_PREFIX+q, state.kpiValues[q]||{})}
+function sheetKey(physio,dateISO){return `${SHEET_PREFIX}${physio.toLowerCase().replace(/\s+/g,'_')}:${dateISO}`}
+
+async function loadAllFeedback(){
+  const keys = await sgList(FEEDBACK_PREFIX);
+  const out = {};
+  for(const k of keys){const v=await sgGet(k);if(v){try{out[k.slice(FEEDBACK_PREFIX.length)]=JSON.parse(v)}catch{}}}
+  state.feedback=out;return out;
+}
+async function saveFeedbackQuarter(q){return sgSet(FEEDBACK_PREFIX+q, state.feedback[q]||{})}
+
+async function loadAllReferrals(){
+  const keys = await sgList(REF_PREFIX);
+  const out = [];
+  for(const k of keys){const v=await sgGet(k);if(v){try{out.push({...JSON.parse(v),_key:k})}catch{}}}
+  out.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  state.referrals = out; return out;
+}
+function refId(){return 'r_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7)}
+function refKey(id){return REF_PREFIX + id}
+
+async function loadAllNotes(){
+  const keys = await sgList(NOTE_PREFIX);
+  const out = [];
+  for(const k of keys){const v=await sgGet(k);if(v){try{out.push({...JSON.parse(v),_key:k})}catch{}}}
+  state.notes = out; return out;
+}
+function noteId(){return 'n_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7)}
+function noteKey(id){return NOTE_PREFIX + id}
+
+async function loadAllAudits(){
+  const keys = await sgList(AUDIT_PREFIX);
+  const out = {};
+  const migrations = [];
+  for(const k of keys){
+    const v = await sgGet(k);
+    if(!v) continue;
+    try {
+      const id = k.slice(AUDIT_PREFIX.length);
+      const data = JSON.parse(v);
+      // Migrate old quarter format (YYYY-QN) to month format (use middle month of quarter)
+      if(/^\d{4}-Q[1-4]$/.test(id)){
+        const [year, qStr] = id.split('-Q');
+        const q = Number(qStr);
+        const middleMonth = String((q-1)*3 + 2).padStart(2,'0'); // Q1→02, Q2→05, Q3→08, Q4→11
+        const newKey = `${year}-${middleMonth}`;
+        out[newKey] = data;
+        migrations.push({oldKey: k, newKey});
+      } else if(/^\d{4}-\d{2}$/.test(id)){
+        out[id] = data;
+      }
+    } catch{}
+  }
+  // Persist migrations
+  for(const m of migrations){
+    await sgSet(AUDIT_PREFIX + m.newKey, out[m.newKey]);
+    await sgDel(m.oldKey);
+  }
+  state.audits = out;
+  return out;
+}
+async function saveAuditsForMonth(month){
+  return sgSet(AUDIT_PREFIX + month, state.audits[month] || {});
+}
+function getAuditForMonth(month){
+  if(!state.audits[month]) state.audits[month] = {};
+  return state.audits[month];
+}
+
+function aggReferrals(entries){
+  let total=0, newContacts=0, newReferrers=0, medical=0;
+  for(const e of entries){
+    total++;
+    if(e.isNew) newContacts++;
+    if(e.isNewReferrer) newReferrers++;
+    if(e.isMedical) medical++;
+  }
+  return {
+    total, newContacts, newReferrers, medical,
+    pctMedical: total ? (medical/total*100) : null
+  };
+}
+// Build everything evalGroup needs in one go for a given quarter
+function buildQuarterAgg(q){
+  const sheets = state.sheets.filter(s=>s.dateISO && quarterOf(s.dateISO)===q);
+  const recall = aggSheets(sheets);
+  const refs = state.referrals.filter(r=>r.date && quarterOf(r.date)===q);
+  const ref = aggReferrals(refs);
+
+  // Audits: walk the months in this quarter, compute each month's individual + group, then average those.
+  const months = monthsInQuarter(q);
+  const monthlyStats = []; // [{month, individual, group, count}]
+  const indMonthly = []; // manager pcts per month (avg input)
+  const groupMonthly = []; // group avg per month
+  let auditCount = 0;
+  for(const m of months){
+    const data = state.audits[m] || {};
+    const mgr = data._manager;
+    const myPct = (mgr && typeof mgr.pct === 'number' && !isNaN(mgr.pct)) ? mgr.pct : null;
+    const allPcts = [];
+    if(myPct != null) allPcts.push(myPct);
+    for(const p of state.physios){
+      const e = data[p];
+      if(e && typeof e.pct === 'number' && !isNaN(e.pct)) allPcts.push(e.pct);
+    }
+    const groupAvg = allPcts.length ? (allPcts.reduce((a,b)=>a+b,0) / allPcts.length) : null;
+    monthlyStats.push({ month:m, individual:myPct, group:groupAvg, count: allPcts.length });
+    if(myPct != null) indMonthly.push(myPct);
+    if(groupAvg != null) groupMonthly.push(groupAvg);
+    auditCount += allPcts.length;
+  }
+  const audit_individual = indMonthly.length ? (indMonthly.reduce((a,b)=>a+b,0) / indMonthly.length) : null;
+  const audit_group      = groupMonthly.length ? (groupMonthly.reduce((a,b)=>a+b,0) / groupMonthly.length) : null;
+
+  return {
+    ...recall,
+    ref_total: ref.total,
+    ref_new: ref.newContacts,
+    ref_new_ref: ref.newReferrers,
+    ref_pct_medical: ref.pctMedical,
+    audit_individual, audit_group,
+    _refs: refs, _refAgg: ref, _sheets: sheets,
+    _auditMonthly: monthlyStats, _auditCount: auditCount,
+  };
+}
+
+// === QUARTER ===
+function quarterOf(d){const dt=new Date(d+'T00:00:00');return `${dt.getFullYear()}-Q${Math.floor(dt.getMonth()/3)+1}`}
+function quarterLabel(q){const[y,n]=q.split('-Q');return ({1:'Jan – Mar',2:'Apr – Jun',3:'Jul – Sep',4:'Oct – Dec'})[n]+' '+y}
+function currentQuarter(){const d=new Date();return `${d.getFullYear()}-Q${Math.floor(d.getMonth()/3)+1}`}
+function shiftQuarter(q,dx){let[y,n]=q.split('-Q').map(Number);n+=dx;while(n<1){n+=4;y--}while(n>4){n-=4;y++}return `${y}-Q${n}`}
+
+// === MONTH ===
+function monthOf(dateISO){const d=new Date(dateISO+'T00:00:00');return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function currentMonth(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
+function monthLabel(m){const[y,n]=m.split('-').map(Number);const names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${names[n-1]} ${y}`}
+function shiftMonth(m,dx){let[y,n]=m.split('-').map(Number);n+=dx;while(n<1){n+=12;y--}while(n>12){n-=12;y++}return `${y}-${String(n).padStart(2,'0')}`}
+function quarterOfMonth(m){const[y,n]=m.split('-').map(Number);return `${y}-Q${Math.floor((n-1)/3)+1}`}
+function monthsInQuarter(q){const[y,qn]=q.split('-Q').map(Number);const start=(qn-1)*3+1;return [start,start+1,start+2].map(n=>`${y}-${String(n).padStart(2,'0')}`)}
+function allQuarters(){const s=new Set([currentQuarter()]);for(const x of state.sheets)if(x.dateISO)s.add(quarterOf(x.dateISO));for(const x of state.referrals)if(x.date)s.add(quarterOf(x.date));for(const q of Object.keys(state.kpiValues))s.add(q);for(const m of Object.keys(state.audits))s.add(quarterOfMonth(m));return[...s].sort().reverse()}
+
+// === KPI CALCS ===
+// Aggregate sheets — uses rows[] if present, else uses saved totals
+function aggSheets(sheets){
+  let total=0, completed=0, reached=0, rebooked=0, dc=0, added=0, sheetCount=sheets.length;
+  for(const s of sheets){
+    if(Array.isArray(s.rows) && s.rows.length){
+      total += s.rows.length;
+      for(const r of s.rows){
+        if((r.recalled||'').toUpperCase()==='Y') completed++;
+        const a=(r.answered||'').toUpperCase();
+        if(a==='Y'||a==='SMS') reached++;
+        if((r.rebooked||'').toUpperCase()==='Y') rebooked++;
+      }
+    } else {
+      total += Number(s.totalRecalls)||0;
+      completed += Number(s.recallsCompleted)||0;
+      reached += Number(s.numberReached)||0;
+      rebooked += Number(s.numberRebooked)||0;
+    }
+    dc += Number(s.dischargedCount)||0;
+    added += Number(s.recallsAdded)||0;
+  }
+  return {
+    sheets:sheetCount, total, completed, reached, rebooked, dc, added,
+    completion: total ? (completed/total*100) : null,
+    conversion: completed ? (rebooked/completed*100) : null,
+    reach:      completed ? (reached/completed*100) : null,
+  };
+}
+function pct(n,d=1){return n==null||isNaN(n)?'—':n.toFixed(d)+'%'}
+function fmtMoney(n){return '$'+(n||0).toLocaleString('en-AU',{maximumFractionDigits:0})}
+
+function evalMetric(m, raw){
+  if(m.unit==='binary'){if(raw==null||raw==='')return{value:null,hit:false,pending:true};return{value:raw,hit:raw==='yes',pending:false}}
+  const v = (raw===''||raw==null)?null:Number(raw);
+  if(v==null||isNaN(v))return{value:null,hit:false,pending:true};
+  let hit;
+  switch(m.op){case'>':hit=v>m.target;break;case'>=':hit=v>=m.target;break;case'<':hit=v<m.target;break;case'<=':hit=v<=m.target;break;default:hit=false}
+  return {value:v,hit,pending:false};
+}
+function evalGroup(group, agg, manual){
+  const results = group.metrics.map(m => {
+    let raw;
+    if(m.auto){raw=agg[m.auto];if(raw==null)return{metric:m,value:null,hit:false,pending:true}}
+    else raw = manual[`${group.id}.${m.id}`];
+    return {metric:m, ...evalMetric(m,raw)};
+  });
+  const allHit = results.every(r => r.hit);
+  const anyPending = results.some(r => r.pending);
+  return {group, results, allHit, anyPending, status: allHit?'hit':(anyPending?'pending':'miss')};
+}
+
+// === DOM ===
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+function el(tag, attrs={}, ...children){
+  const n = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)){
+    if(k==='class') n.className=v;
+    else if(k==='style') n.setAttribute('style',v);
+    else if(k.startsWith('on') && typeof v==='function') n.addEventListener(k.slice(2),v);
+    else if(v!==false&&v!=null) n.setAttribute(k,v);
+  }
+  for(const c of children){if(c==null)continue;n.appendChild(typeof c==='string'?document.createTextNode(c):c)}
+  return n;
+}
+
+// === TABS ===
+$$('#tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    $$('#tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    $$('.panel').forEach(p=>p.classList.remove('active'));
+    $('#panel-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='scorecard') renderScorecard();
+    if(btn.dataset.tab==='dashboard') renderDashboard();
+    if(btn.dataset.tab==='referrals') renderReferrals();
+    if(btn.dataset.tab==='audits') renderAudits();
+    if(btn.dataset.tab==='notes') renderNotes();
+    if(btn.dataset.tab==='feedback') renderFeedback();
+    if(btn.dataset.tab==='history') renderHistory();
+    if(btn.dataset.tab==='settings') renderSettings();
+  });
+});
+
+// Section tabs (Quick / Photo / Detail)
+$$('#entry-tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    $$('#entry-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.entryMode = btn.dataset.mode;
+    $('#mode-quick').style.display = state.entryMode==='quick'?'':'none';
+    $('#mode-photo').style.display = state.entryMode==='photo'?'':'none';
+    $('#mode-detail').style.display = state.entryMode==='detail'?'':'none';
+  });
+});
+
+// === SCORECARD ===
+$('#q-prev').addEventListener('click',()=>{state.scorecardQuarter=shiftQuarter(state.scorecardQuarter,-1);renderScorecard()});
+$('#q-next').addEventListener('click',()=>{state.scorecardQuarter=shiftQuarter(state.scorecardQuarter,1);renderScorecard()});
+
+// === FEEDBACK (quarterly notes) ===
+const FEEDBACK_FIELDS = ['positives','improvements','concerns','focus','other'];
+$('#fb-prev').addEventListener('click',()=>{state.feedbackQuarter=shiftQuarter(state.feedbackQuarter,-1);renderFeedback()});
+$('#fb-next').addEventListener('click',()=>{state.feedbackQuarter=shiftQuarter(state.feedbackQuarter,1);renderFeedback()});
+
+function renderFeedback(){
+  if(!state.feedbackQuarter) state.feedbackQuarter = currentQuarter();
+  const q = state.feedbackQuarter;
+  $('#fb-label').textContent = quarterLabel(q);
+  const data = state.feedback[q] || {};
+  for(const f of FEEDBACK_FIELDS){
+    const el = $('#fb-'+f);
+    if(el) el.value = data[f] || '';
+  }
+  updateFeedbackStatus(q);
+}
+
+function updateFeedbackStatus(q){
+  const status = $('#fb-status');
+  if(!status) return;
+  const data = state.feedback[q] || {};
+  const hasContent = FEEDBACK_FIELDS.some(f=>(data[f]||'').trim());
+  status.textContent = hasContent ? 'Saved' : 'No notes yet for this quarter';
+}
+
+let feedbackSaveTimer = null;
+function onFeedbackInput(){
+  const q = state.feedbackQuarter;
+  if(!q) return;
+  if(!state.feedback[q]) state.feedback[q] = {};
+  for(const f of FEEDBACK_FIELDS){
+    const el = $('#fb-'+f);
+    if(el) state.feedback[q][f] = el.value;
+  }
+  const status = $('#fb-status');
+  if(status) status.textContent = 'Saving…';
+  clearTimeout(feedbackSaveTimer);
+  feedbackSaveTimer = setTimeout(async ()=>{
+    await saveFeedbackQuarter(q);
+    updateFeedbackStatus(q);
+  }, 500);
+}
+FEEDBACK_FIELDS.forEach(f=>{const el=$('#fb-'+f);if(el)el.addEventListener('input',onFeedbackInput)});
+
+function renderScorecard(){
+  if(!state.scorecardQuarter) state.scorecardQuarter = currentQuarter();
+  const q = state.scorecardQuarter;
+  $('#q-label').textContent = quarterLabel(q);
+  const agg = buildQuarterAgg(q);
+  const manual = state.kpiValues[q]||{};
+  const evals = KPI_GROUPS.map(g=>evalGroup(g,agg,manual));
+  const hitCount = evals.filter(e=>e.allHit).length;
+
+  $('#bn-q-amt').textContent = fmtMoney(hitCount * BONUS_PER_KPI);
+  $('#bn-q-detail').textContent = `${hitCount} of ${TOTAL_KPI_GROUPS} KPIs hit · max ${fmtMoney(TOTAL_KPI_GROUPS*BONUS_PER_KPI)}`;
+
+  const [year] = q.split('-Q');
+  let ytdPerf=0, ytdHits=0;
+  for(let i=1;i<=4;i++){
+    const yq = `${year}-Q${i}`;
+    const yqAgg = buildQuarterAgg(yq);
+    const yqManual = state.kpiValues[yq]||{};
+    if(yqAgg._sheets.length===0 && yqAgg._refs.length===0 && yqAgg._auditCount===0 && Object.keys(yqManual).length===0) continue;
+    const yqEvals = KPI_GROUPS.map(g=>evalGroup(g,yqAgg,yqManual));
+    const yqHits = yqEvals.filter(e=>e.allHit).length;
+    ytdHits += yqHits;
+    ytdPerf += yqHits * BONUS_PER_KPI;
+  }
+  $('#bn-ytd-amt').textContent = fmtMoney(GUARANTEED_ANNUAL + ytdPerf);
+  $('#bn-ytd-detail').textContent = `${fmtMoney(GUARANTEED_ANNUAL)} guaranteed + ${fmtMoney(ytdPerf)} performance (${ytdHits} hits)`;
+
+  const list = $('#kpi-list');
+  list.innerHTML = '';
+  // Recall and Referral float to the top — Alesha checks these most.
+  const PRIORITY_IDS = ['recall', 'referral'];
+  const ordered = [...evals].sort((a, b) => {
+    const ai = PRIORITY_IDS.indexOf(a.group.id);
+    const bi = PRIORITY_IDS.indexOf(b.group.id);
+    if(ai === -1 && bi === -1) return 0;
+    if(ai === -1) return 1;
+    if(bi === -1) return -1;
+    return ai - bi;
+  });
+  for(const ev of ordered) renderKPIGroup(list, ev, q, agg);
+}
+
+function renderKPIGroup(parent, ev, q, agg){
+  const {group, results, status} = ev;
+  const card = el('div',{class:`kpi-card ${status}${group.auto?' auto':''}`});
+  const head = el('div',{class:'kpi-head'});
+  const title = el('div',{class:'title'}, el('h3',{},group.name));
+  if(group.auto){
+    let badgeLabel = 'Auto from sheets';
+    if(group.id === 'referral') badgeLabel = 'Auto from diary';
+    if(group.id === 'audits')   badgeLabel = 'Auto from entries';
+    title.appendChild(el('span',{class:'auto-badge'}, badgeLabel));
+  }
+  head.appendChild(title);
+  const sLabel = status==='hit'?'Hit':status==='miss'?'Missed':'Pending';
+  head.appendChild(el('span',{class:`kpi-status ${status}`},sLabel,
+    el('span',{class:'bonus'},status==='hit'?`+${fmtMoney(BONUS_PER_KPI)}`:fmtMoney(BONUS_PER_KPI))));
+  card.appendChild(head);
+  if(group.blurb) card.appendChild(el('div',{class:'kpi-head',style:'margin-top:-8px;margin-bottom:12px'},
+    el('div',{class:'target'}, '🎯 '+group.blurb)));
+  const metrics = el('div',{class:'kpi-metrics'});
+  for(const r of results) metrics.appendChild(renderKPIMetric(r,group,q,agg));
+  card.appendChild(metrics);
+  if(group.id==='recall' && agg.total > 0){
+    card.appendChild(el('div',{class:'kpi-note'},
+      `Based on ${agg.sheets} sheet(s), ${agg.total} recalls. Completed: ${agg.completed} · Reached: ${agg.reached} · Rebooked: ${agg.rebooked}`));
+  }
+  if(group.id==='referral' && agg._refAgg && agg._refAgg.total > 0){
+    card.appendChild(el('div',{class:'kpi-note'},
+      `Based on ${agg._refAgg.total} diary entries. Add or edit them in the Referrals tab.`));
+  }
+  if(group.id==='audits'){
+    card.appendChild(renderAuditScorecardSummary(q, agg));
+  }
+  parent.appendChild(card);
+}
+
+function renderAuditScorecardSummary(q, agg){
+  const wrap = el('div',{class:'audit-link-card'});
+  const summary = el('div',{class:'alc-summary'});
+  const monthsWithData = (agg._auditMonthly || []).filter(m => m.count > 0);
+  if(monthsWithData.length === 0){
+    summary.appendChild(el('span',{}, 'No audit data yet for this quarter.'));
+  } else {
+    for(const m of monthsWithData){
+      const cls = (m.individual != null && m.individual >= 90 && m.group != null && m.group >= 90) ? '' : '';
+      summary.appendChild(el('span',{},
+        el('b',{}, monthLabel(m.month).split(' ')[0]), ': ',
+        m.group != null ? pct(m.group, 0) : '—',
+        m.individual != null ? ` (you ${pct(m.individual, 0)})` : ''
+      ));
+    }
+  }
+  wrap.appendChild(summary);
+  const btn = el('button',{class:'btn sm'}, 'Open audits →');
+  btn.addEventListener('click', () => {
+    const tabBtn = document.querySelector('#tabs button[data-tab="audits"]');
+    if(tabBtn) tabBtn.click();
+  });
+  wrap.appendChild(btn);
+  return wrap;
+}
+
+// === AUDITS PAGE ===
+$('#am-prev').addEventListener('click', () => { state.auditsMonth = shiftMonth(state.auditsMonth, -1); renderAudits() });
+$('#am-next').addEventListener('click', () => { state.auditsMonth = shiftMonth(state.auditsMonth, 1); renderAudits() });
+
+function renderAudits(){
+  if(!state.auditsMonth) state.auditsMonth = currentMonth();
+  const month = state.auditsMonth;
+  const quarter = quarterOfMonth(month);
+  $('#am-label').textContent = monthLabel(month);
+  $('#audit-month-title').textContent = `Entries — ${monthLabel(month)}`;
+
+  // Quarter rollup stats at top
+  const agg = buildQuarterAgg(quarter);
+  const sw = $('#audit-quarter-stats');
+  sw.innerHTML = '';
+  const qStats = [
+    { label:`${quarterLabel(quarter)} — your average`, value:pct(agg.audit_individual,1), sub:'target ≥ 90%', hit:agg.audit_individual!=null && agg.audit_individual>=90, pending:agg.audit_individual==null },
+    { label:`${quarterLabel(quarter)} — group average`, value:pct(agg.audit_group,1), sub:'target ≥ 90%', hit:agg.audit_group!=null && agg.audit_group>=90, pending:agg.audit_group==null },
+    { label:'Months entered', value:`${(agg._auditMonthly||[]).filter(m=>m.count>0).length} / 3`, sub:'this quarter' },
+  ];
+  for(const s of qStats){
+    let cls = '';
+    if(s.hit !== undefined){
+      cls = s.pending ? '' : (s.hit ? 'good' : 'bad');
+    }
+    sw.appendChild(el('div',{class:'stat '+cls},
+      el('div',{class:'label'}, s.label),
+      el('div',{class:'value'}, String(s.value)),
+      el('div',{class:'sub'}, s.sub)));
+  }
+
+  // Per-month entry rows for the selected month
+  const auditM = getAuditForMonth(month);
+  const rowsContainer = $('#audit-month-rows');
+  rowsContainer.innerHTML = '';
+  const rows = [{ key:'_manager', label:'Me (manager)', isManager:true }];
+  for(const p of state.physios) rows.push({ key:p, label:p });
+  for(const row of rows) rowsContainer.appendChild(renderAuditMonthRow(month, auditM, row));
+
+  // Quarterly breakdown table
+  const qWrap = $('#audit-quarter-table');
+  qWrap.innerHTML = '';
+  const table = el('table',{class:'audit-q-table'});
+  const thead = el('thead');
+  const headRow = el('tr');
+  headRow.appendChild(el('th',{}, 'Month'));
+  headRow.appendChild(el('th',{}, 'You'));
+  headRow.appendChild(el('th',{}, 'Group avg'));
+  headRow.appendChild(el('th',{}, 'Entries'));
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  const tbody = el('tbody');
+  for(const m of agg._auditMonthly || []){
+    const tr = el('tr', m.month === month ? { class:'current' } : {});
+    const monthBtn = el('button',{class:'month-link', title:'Jump to this month'}, monthLabel(m.month));
+    monthBtn.addEventListener('click', () => { state.auditsMonth = m.month; renderAudits() });
+    tr.appendChild(el('td',{}, monthBtn));
+    const indCls = m.individual == null ? 'empty-cell' : (m.individual >= 90 ? 'pct-cell hit' : 'pct-cell miss');
+    tr.appendChild(el('td',{class:indCls}, m.individual == null ? '—' : pct(m.individual, 1)));
+    const grpCls = m.group == null ? 'empty-cell' : (m.group >= 90 ? 'pct-cell hit' : 'pct-cell miss');
+    tr.appendChild(el('td',{class:grpCls}, m.group == null ? '—' : pct(m.group, 1)));
+    tr.appendChild(el('td',{class:m.count===0?'empty-cell':''}, m.count === 0 ? '—' : String(m.count)));
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  qWrap.appendChild(table);
+
+}
+
+function renderAuditMonthRow(month, auditM, row){
+  const data = auditM[row.key] || {};
+  const pctVal = (typeof data.pct === 'number' && !isNaN(data.pct)) ? data.pct : null;
+  let cls = 'pending';
+  if(pctVal != null) cls = pctVal >= 90 ? 'hit' : 'miss';
+
+  const node = el('div',{class:`audit-row ${cls}${row.isManager?' manager':''}`});
+  const nameWrap = el('div',{class:'audit-name'});
+  nameWrap.appendChild(el('div',{class:'audit-name-label'}, row.label));
+  if(row.isManager) nameWrap.appendChild(el('div',{class:'audit-name-tag'}, 'Counts toward individual KPI'));
+  node.appendChild(nameWrap);
+
+  const pctWrap = el('div',{class:'audit-pct-wrap'});
+  const pctInput = el('input',{type:'number', step:'0.1', min:'0', max:'100', placeholder:'—', value: pctVal == null ? '' : pctVal});
+  pctInput.addEventListener('change', async () => {
+    const v = pctInput.value.trim();
+    if(v === ''){
+      delete auditM[row.key];
+    } else {
+      auditM[row.key] = { pct: Number(v) };
+    }
+    state.audits[month] = auditM;
+    await saveAuditsForMonth(month);
+    renderAudits();
+    renderScorecard();
+  });
+  pctWrap.appendChild(pctInput);
+  pctWrap.appendChild(el('span',{class:'audit-unit'}, '%'));
+  node.appendChild(pctWrap);
+
+  return node;
+}
+
+function renderKPIMetric(r, group, q, agg){
+  const {metric, hit, pending} = r;
+  const cls = pending?'pending':(hit?'hit':'miss');
+  const node = el('div',{class:`kpi-metric ${cls}${metric.unit==='binary'?' binary':''}`});
+  node.appendChild(el('div',{class:'m-label'}, metric.label));
+  let tLabel;
+  if(metric.unit==='binary') tLabel='Target: Yes';
+  else tLabel = `Target: ${metric.op||''} ${metric.target}${metric.unit==='%'?'%':''}`;
+  node.appendChild(el('div',{class:'m-target'}, tLabel));
+
+  if(metric.auto){
+    const v = agg[metric.auto];
+    node.appendChild(el('div',{class:'m-auto-value'}, v==null?'—':pct(v,1)));
+    node.appendChild(el('div',{class:'m-auto-detail'}, v==null?'no data yet':'auto-calculated'));
+  } else if(metric.unit==='binary'){
+    const wrap = el('div',{class:'m-input'});
+    const key = `${group.id}.${metric.id}`;
+    const cur = (state.kpiValues[q]||{})[key]||'';
+    const radioName = `r-${q}-${key}`;
+    for(const opt of [['yes','Yes'],['no','No']]){
+      const lbl = el('label',{class:'switch'});
+      const input = el('input',{type:'radio',name:radioName,value:opt[0]});
+      if(cur===opt[0]) input.checked=true;
+      input.addEventListener('change', async ()=>{
+        if(!state.kpiValues[q]) state.kpiValues[q]={};
+        state.kpiValues[q][key]=opt[0];
+        await saveKPIQuarter(q); renderScorecard();
+      });
+      lbl.appendChild(input); lbl.appendChild(document.createTextNode(opt[1]));
+      wrap.appendChild(lbl);
+    }
+    node.appendChild(wrap);
+  } else {
+    const wrap = el('div',{class:'m-input'});
+    const key = `${group.id}.${metric.id}`;
+    const cur = (state.kpiValues[q]||{})[key];
+    const input = el('input',{type:'number',step:'any',placeholder:'—',value:(cur??'')});
+    input.addEventListener('change', async ()=>{
+      if(!state.kpiValues[q]) state.kpiValues[q]={};
+      const v = input.value.trim();
+      if(v==='') delete state.kpiValues[q][key];
+      else state.kpiValues[q][key]=Number(v);
+      await saveKPIQuarter(q); renderScorecard();
+    });
+    wrap.appendChild(input);
+    wrap.appendChild(el('span',{class:'unit'}, metric.unit==='%'?'%':''));
+    node.appendChild(wrap);
+  }
+  return node;
+}
+
+// === PHYSIO DROPDOWNS ===
+function renderPhysioDropdowns(){
+  for(const t of ['#up-physio','#history-filter']){
+    const sel = $(t); if(!sel) continue;
+    const isFilter = t==='#history-filter';
+    const cur = sel.value;
+    sel.innerHTML='';
+    if(isFilter) sel.appendChild(el('option',{value:''},'All'));
+    for(const p of state.physios) sel.appendChild(el('option',{value:p},p));
+    if(cur && [...sel.options].some(o=>o.value===cur)) sel.value = cur;
+  }
+}
+
+// === QUICK ENTRY DERIVED ===
+function updateDerived(){
+  const total = Number($('#qe-total').value)||0;
+  const completed = Number($('#qe-completed').value)||0;
+  const reached = Number($('#qe-reached').value)||0;
+  const rebooked = Number($('#qe-rebooked').value)||0;
+  const dc = Number($('#qe-dc').value)||0;
+  const added = Number($('#qe-added').value)||0;
+  const any = total||completed||reached||rebooked||dc||added;
+  $('#qe-derived').style.display = any?'flex':'none';
+  $('#d-completion').textContent = total ? pct(completed/total*100, 0) : '—';
+  $('#d-conversion').textContent = completed ? pct(rebooked/completed*100, 0) : '—';
+  $('#d-reach').textContent = completed ? pct(reached/completed*100, 0) : '—';
+}
+['qe-total','qe-completed','qe-reached','qe-rebooked','qe-dc','qe-added'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updateDerived);
+});
+
+// === FILE UPLOAD ===
+const fdrop = $('#fdrop');
+const finput = $('#finput');
+fdrop.addEventListener('click',()=>finput.click());
+fdrop.addEventListener('dragover',e=>{e.preventDefault();fdrop.classList.add('dragging')});
+fdrop.addEventListener('dragleave',()=>fdrop.classList.remove('dragging'));
+fdrop.addEventListener('drop',e=>{e.preventDefault();fdrop.classList.remove('dragging');const f=e.dataTransfer.files[0];if(f)handleFile(f)});
+finput.addEventListener('change',e=>{const f=e.target.files[0];if(f)handleFile(f)});
+
+// Resize/compress an image so the base64 payload stays under the API's 5MB limit.
+// Phone photos are often 5-10MB; we shrink them to ~2000px max edge and JPEG-compress.
+async function resizeImage(file){
+  // Load the file into an Image element
+  const img = await new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const i = new Image();
+    i.onload  = () => { URL.revokeObjectURL(url); res(i); };
+    i.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Could not read image')); };
+    i.src = url;
+  });
+  const TARGET_BYTES = 4 * 1024 * 1024; // aim for 4MB to leave headroom
+  let maxDim = 2000;
+  let quality = 0.85;
+  for(let attempt = 0; attempt < 6; attempt++){
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+    const base64 = dataUrl.split(',')[1];
+    const bytes = Math.round(base64.length * 0.75); // base64 -> approx raw size
+    if(bytes <= TARGET_BYTES){
+      return {base64, mediaType:'image/jpeg', dataUrl, originalBytes:file.size, newBytes:bytes, w, h};
+    }
+    // Still too big — be more aggressive next round
+    maxDim = Math.round(maxDim * 0.8);
+    quality = Math.max(0.55, quality - 0.1);
+  }
+  throw new Error('Image is too large even after compression — try a smaller photo.');
+}
+
+async function handleFile(file){
+  if(!file.type.startsWith('image/')){showStatus('error','That file is not an image.');return}
+  showStatus('info', `Preparing ${(file.size/1024/1024).toFixed(1)} MB photo…`, true);
+  try {
+    const resized = await resizeImage(file);
+    state.currentImage = {base64: resized.base64, mediaType: resized.mediaType};
+    $('#preview-img').src = resized.dataUrl;
+    $('#preview-area').style.display = '';
+    if(resized.newBytes < resized.originalBytes * 0.9){
+      showStatus('info', `Photo ready — compressed from ${(resized.originalBytes/1024/1024).toFixed(1)} MB to ${(resized.newBytes/1024/1024).toFixed(1)} MB. Click "Read sheet with AI".`);
+    } else {
+      showStatus('info', 'Photo ready. Click "Read sheet with AI".');
+    }
+  } catch(e){
+    showStatus('error', e.message);
+    return;
+  }
+  // Infer date from filename
+  const m = file.name.match(/(\d{1,2})[-_.](\d{1,2})(?:[-_.](\d{2,4}))?/);
+  if(m && !$('#up-date').value){
+    const day = m[1].padStart(2,'0'), mon = m[2].padStart(2,'0');
+    const yr = m[3] ? (m[3].length===2?'20'+m[3]:m[3]) : new Date().getFullYear();
+    $('#up-date').value = `${yr}-${mon}-${day}`;
+  }
+  // Infer physio
+  const lower = file.name.toLowerCase();
+  for(const p of state.physios){if(lower.includes(p.toLowerCase())){$('#up-physio').value=p;break}}
+}
+
+function showStatus(kind, msg, withSpinner=false){
+  const st = $('#parse-status');
+  st.innerHTML = '';
+  const node = el('div',{class:`status ${kind}`});
+  if(withSpinner) node.appendChild(el('div',{class:'spinner'}));
+  node.appendChild(el('span',{}, msg));
+  st.appendChild(node);
+}
+
+// === CLAUDE API ===
+const EXTRACT_PROMPT = `You are reading a handwritten physiotherapy recall tracking sheet.
+
+Columns: Name | Recalled (Y/N) | Answered (Y/N or "SMS") | Rebooked (Y/N) | Comment.
+Bottom totals: "Number of People D/C" and "Number of People with a Recall Added".
+
+The image may be sideways or rotated — interpret regardless.
+
+Return ONLY a JSON object, no markdown fences:
+{"date":"DD/MM or empty","rows":[{"name":"","recalled":"Y|N|","answered":"Y|N|SMS|","rebooked":"Y|N|","comment":""}],"discharged_count":0,"recalls_added":0}
+
+Rules: skip empty rows; tick or "Y" = "Y"; dash/blank = ""; preserve abbreviations like "d/c","fla","Hydro" in comment. Return ONLY the JSON.`;
+
+async function callClaude(base64, mediaType){
+  const body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    messages: [{role:'user', content:[
+      {type:'image', source:{type:'base64', media_type:mediaType, data:base64}},
+      {type:'text', text:EXTRACT_PROMPT}
+    ]}]
+  };
+  const headers = {'Content-Type':'application/json'};
+  if(state.apiKey){
+    headers['x-api-key'] = state.apiKey;
+    headers['anthropic-version'] = '2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access'] = 'true';
+  }
+  const resp = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
+  if(!resp.ok){
+    let msg = `API error ${resp.status}`;
+    try{const j=await resp.json();if(j.error?.message) msg+=': '+j.error.message}catch{}
+    throw new Error(msg);
+  }
+  const data = await resp.json();
+  const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').replace(/```json|```/g,'').trim();
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  return JSON.parse(start>=0&&end>start?text.slice(start,end+1):text);
+}
+
+$('#parse-btn').addEventListener('click', async ()=>{
+  if(!state.currentImage) return;
+  $('#parse-btn').disabled = true;
+  showStatus('info','Reading the sheet… 5-15 seconds.', true);
+  try{
+    const data = await callClaude(state.currentImage.base64, state.currentImage.mediaType);
+    showStatus('success','Read complete — totals filled in. Switch to Quick entry or Patient detail to review.');
+    applyExtractedData(data);
+  } catch(e){
+    console.error(e);
+    let msg = e.message;
+    if(window.location.protocol==='file:' && !state.apiKey){
+      msg = 'Local file mode without an API key. Add a key in Settings, or use Claude.ai, or just use Quick entry.';
+    } else if(msg.includes('Failed to fetch') || msg.includes('NetworkError')){
+      msg = 'Network/CORS error. Likely running locally — add an API key in Settings or use Quick entry.';
+    }
+    showStatus('error', msg);
+  } finally{
+    $('#parse-btn').disabled = false;
+  }
+});
+
+function applyExtractedData(data){
+  const rows = (data.rows||[]).map(r=>({
+    name:r.name||'', recalled:(r.recalled||'').toUpperCase(),
+    answered:(r.answered||'').toUpperCase(), rebooked:(r.rebooked||'').toUpperCase(),
+    comment:r.comment||'',
+  }));
+  state.draft.rows = rows;
+  state.draft.dc = data.discharged_count ?? 0;
+  state.draft.added = data.recalls_added ?? 0;
+  // Compute totals from rows
+  const total = rows.length;
+  const completed = rows.filter(r=>r.recalled==='Y').length;
+  const reached = rows.filter(r=>r.answered==='Y'||r.answered==='SMS').length;
+  const rebooked = rows.filter(r=>r.rebooked==='Y').length;
+  $('#qe-total').value = total;
+  $('#qe-completed').value = completed;
+  $('#qe-reached').value = reached;
+  $('#qe-rebooked').value = rebooked;
+  $('#qe-dc').value = state.draft.dc;
+  $('#qe-added').value = state.draft.added;
+  $('#ex-dc').value = state.draft.dc;
+  $('#ex-added').value = state.draft.added;
+  renderDetailRows();
+  updateDerived();
+}
+
+// === DETAIL ROWS ===
+function renderDetailRows(){
+  const tbody = $('#rows-body');
+  tbody.innerHTML = '';
+  state.draft.rows.forEach((r,i)=>{
+    const tr = el('tr');
+    tr.appendChild(el('td',{class:'num'},String(i+1)));
+    tr.appendChild(el('td',{}, Object.assign(el('input',{type:'text',value:r.name}),{oninput:e=>state.draft.rows[i].name=e.target.value})));
+    for(const col of ['recalled','answered','rebooked']){
+      const opts = col==='answered'?['','Y','N','SMS']:['','Y','N'];
+      const sel = el('select',{});
+      for(const o of opts){
+        const opt = el('option',{value:o}, o||'—');
+        if(r[col]===o) opt.selected=true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener('change',e=>state.draft.rows[i][col]=e.target.value);
+      tr.appendChild(el('td',{class:'cell-yn'}, sel));
+    }
+    tr.appendChild(el('td',{}, Object.assign(el('input',{type:'text',value:r.comment,placeholder:'—'}),{oninput:e=>state.draft.rows[i].comment=e.target.value})));
+    tr.appendChild(el('td',{class:'actions'}, Object.assign(el('button',{class:'btn ghost sm'},'✕'),{onclick:()=>{state.draft.rows.splice(i,1);renderDetailRows()}})));
+    tbody.appendChild(tr);
+  });
+  if(state.draft.rows.length===0){
+    const tr = el('tr');
+    tr.appendChild(el('td',{colspan:7,style:'text-align:center;color:var(--inkm);padding:20px'},'No rows. Click "Add row" to start, or use Quick entry instead.'));
+    tbody.appendChild(tr);
+  }
+}
+$('#add-row-btn').addEventListener('click',()=>{
+  state.draft.rows.push({name:'',recalled:'',answered:'',rebooked:'',comment:''});
+  renderDetailRows();
+});
+$('#ex-dc').addEventListener('input', e => { state.draft.dc = Number(e.target.value)||0; $('#qe-dc').value = state.draft.dc; updateDerived() });
+$('#ex-added').addEventListener('input', e => { state.draft.added = Number(e.target.value)||0; $('#qe-added').value = state.draft.added; updateDerived() });
+
+// === SAVE ===
+$('#save-btn').addEventListener('click', async ()=>{
+  const physio = $('#up-physio').value;
+  const dateISO = $('#up-date').value;
+  if(!physio){alert('Pick a physio.');return}
+  if(!dateISO){alert('Set the date.');return}
+  // Pull from quick entry inputs (these are kept in sync)
+  const totalRecalls = Number($('#qe-total').value)||0;
+  const recallsCompleted = Number($('#qe-completed').value)||0;
+  const numberReached = Number($('#qe-reached').value)||0;
+  const numberRebooked = Number($('#qe-rebooked').value)||0;
+  const dischargedCount = Number($('#qe-dc').value)||0;
+  const recallsAdded = Number($('#qe-added').value)||0;
+
+  const hasRows = state.draft.rows.some(r => r.name.trim() || r.recalled || r.answered || r.rebooked || r.comment);
+  // Need at least the basic numbers
+  if(!hasRows && totalRecalls===0 && recallsCompleted===0 && numberRebooked===0 && dischargedCount===0){
+    alert('Enter at least one number, or fill in patient detail.');
+    return;
+  }
+
+  const sheet = {
+    physio, dateISO,
+    totalRecalls, recallsCompleted, numberReached, numberRebooked,
+    dischargedCount, recallsAdded,
+    rows: hasRows ? state.draft.rows.filter(r => r.name.trim() || r.recalled || r.answered || r.rebooked || r.comment) : [],
+    savedAt: new Date().toISOString(),
+  };
+  const ok = await sgSet(sheetKey(physio, dateISO), sheet);
+  if(!ok){alert('Save failed. Try again.');return}
+  await loadAllSheets();
+  clearForm();
+  const st = $('#save-status');
+  st.innerHTML = '';
+  st.appendChild(el('div',{class:'status success'}, el('span',{}, `Saved — ${physio} on ${formatDate(dateISO)}.`)));
+  setTimeout(()=>{ st.innerHTML='' }, 4000);
+});
+
+$('#cancel-btn').addEventListener('click', clearForm);
+
+function clearForm(){
+  ['qe-total','qe-completed','qe-reached','qe-rebooked','qe-dc','qe-added','ex-dc','ex-added'].forEach(id=>{document.getElementById(id).value=''});
+  state.draft = {rows:[], dc:0, added:0};
+  state.currentImage = null;
+  $('#preview-area').style.display = 'none';
+  $('#parse-status').innerHTML = '';
+  $('#qe-derived').style.display = 'none';
+  $('#finput').value = '';
+  renderDetailRows();
+}
+
+// === DASHBOARD ===
+function formatDate(iso){if(!iso)return'';const d=new Date(iso+'T00:00:00');return d.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'})}
+
+function renderQuarterSelect(){
+  const sel = $('#quarter-select');
+  const cur = sel.value || currentQuarter();
+  sel.innerHTML = '';
+  for(const q of allQuarters()) sel.appendChild(el('option',{value:q}, quarterLabel(q)));
+  sel.value = cur;
+}
+function renderDashboard(){
+  renderQuarterSelect();
+  const q = $('#quarter-select').value || currentQuarter();
+  const sheets = state.sheets.filter(s=>s.dateISO && quarterOf(s.dateISO)===q);
+  renderRecallStats(sheets);
+  renderPhysioBreakdown(sheets);
+}
+$('#quarter-select').addEventListener('change', renderDashboard);
+
+function renderRecallStats(sheets){
+  const k = aggSheets(sheets);
+  const wrap = $('#dashboard-overall');
+  wrap.innerHTML = '';
+  const cHit = k.completion!=null && k.completion > 90;
+  const vHit = k.conversion!=null && k.conversion > 20;
+  wrap.appendChild(el('div',{class:'stat '+(k.completion==null?'':cHit?'good':'bad')},
+    el('div',{class:'label'},'Total recalls — target >90%'),
+    el('div',{class:'value'}, pct(k.completion)),
+    el('div',{class:'sub'}, `${k.completed} of ${k.total} completed`)));
+  wrap.appendChild(el('div',{class:'stat '+(k.conversion==null?'':vHit?'good':'bad')},
+    el('div',{class:'label'},'Conversion — target >20%'),
+    el('div',{class:'value'}, pct(k.conversion)),
+    el('div',{class:'sub'}, `${k.rebooked} of ${k.completed} rebooked`)));
+  const more = [
+    {label:'Sheets logged', value:k.sheets, sub:`${k.total} recalls tracked`},
+    {label:'Reach rate', value:pct(k.reach), sub:`${k.reached} contacted`},
+    {label:'D/C this quarter', value:k.dc, sub:`${k.added} recalls added back`},
+  ];
+  for(const s of more){
+    wrap.appendChild(el('div',{class:'stat'+(s.accent?' accent':'')},
+      el('div',{class:'label'}, s.label),
+      el('div',{class:'value'}, String(s.value)),
+      el('div',{class:'sub'}, s.sub)));
+  }
+}
+
+function renderPhysioBreakdown(sheets){
+  const wrap = $('#dashboard-physios');
+  wrap.innerHTML = '';
+  if(sheets.length===0){
+    wrap.appendChild(el('div',{class:'empty'},
+      el('div',{class:'em-title'},'No sheets in this quarter yet'),
+      el('div',{},'Add a sheet to start tracking.')));
+    return;
+  }
+  for(const physio of state.physios){
+    const psheets = sheets.filter(s=>s.physio===physio);
+    const k = aggSheets(psheets);
+    const card = el('div',{class:'physio-card'});
+    card.appendChild(el('div',{class:'head'},
+      el('h3',{}, physio, el('span',{class:'pill'}, `${psheets.length} sheet${psheets.length===1?'':'s'}`))));
+    const body = el('div',{class:'body'});
+    const items = [
+      {label:'Total recalls', value:pct(k.completion,0), sub:`${k.completed}/${k.total}`},
+      {label:'Conversion', value:pct(k.conversion,0), sub:`${k.rebooked}/${k.completed}`},
+      {label:'Reached', value:k.reached, sub:pct(k.reach,0)+' of called'},
+      {label:'Rebooked', value:k.rebooked, sub:pct(k.conversion,0)+' converted'},
+      {label:'D/C', value:k.dc, sub:`${k.added} recalls added back`},
+    ];
+    for(const it of items){
+      body.appendChild(el('div',{class:'mini-stat'},
+        el('div',{class:'label'}, it.label),
+        el('div',{class:'value'}, String(it.value)),
+        el('div',{class:'sub'}, it.sub)));
+    }
+    card.appendChild(body);
+    wrap.appendChild(card);
+  }
+}
+
+// === REFERRALS ===
+const REF_TARGETS = { total:12, newContacts:6, newReferrers:2, pctMedical:75 };
+
+$('#rq-prev').addEventListener('click',()=>{state.referralsQuarter=shiftQuarter(state.referralsQuarter,-1);renderReferrals()});
+$('#rq-next').addEventListener('click',()=>{state.referralsQuarter=shiftQuarter(state.referralsQuarter,1);renderReferrals()});
+$('#rf-save').addEventListener('click', saveReferralForm);
+$('#rf-cancel').addEventListener('click', cancelReferralEdit);
+
+function clearReferralForm(){
+  $('#rf-date').value = new Date().toISOString().slice(0,10);
+  $('#rf-name').value = '';
+  $('#rf-role').value = '';
+  $('#rf-org').value = '';
+  $('#rf-outcome').value = '';
+  $('#rf-new').checked = false;
+  $('#rf-newref').checked = false;
+  $('#rf-med').checked = true;
+  state.editingRefId = null;
+  $('#ref-form-title').textContent = 'Add entry';
+  $('#rf-save').textContent = 'Add to diary';
+  $('#rf-cancel').style.display = 'none';
+}
+
+function loadReferralIntoForm(r){
+  $('#rf-date').value = r.date;
+  $('#rf-name').value = r.name||'';
+  $('#rf-role').value = r.role||'';
+  $('#rf-org').value = r.organization||'';
+  $('#rf-outcome').value = r.outcome||'';
+  $('#rf-new').checked = !!r.isNew;
+  $('#rf-newref').checked = !!r.isNewReferrer;
+  $('#rf-med').checked = !!r.isMedical;
+  state.editingRefId = r.id;
+  $('#ref-form-title').textContent = `Editing entry — ${r.name||'(no name)'}`;
+  $('#rf-save').textContent = 'Save changes';
+  $('#rf-cancel').style.display = '';
+  $('#ref-form-card').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function cancelReferralEdit(){
+  clearReferralForm();
+}
+
+async function saveReferralForm(){
+  const date = $('#rf-date').value;
+  const name = $('#rf-name').value.trim();
+  if(!date){alert('Pick a date.');return}
+  if(!name){alert('Enter a name.');return}
+  const existing = state.editingRefId ? state.referrals.find(r=>r.id===state.editingRefId) : null;
+  const entry = {
+    id: state.editingRefId || refId(),
+    date,
+    name,
+    role: $('#rf-role').value.trim(),
+    organization: $('#rf-org').value.trim(),
+    isNew: $('#rf-new').checked,
+    isNewReferrer: $('#rf-newref').checked,
+    isMedical: $('#rf-med').checked,
+    outcome: $('#rf-outcome').value.trim(),
+    updates: existing?.updates || [],
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  const ok = await sgSet(refKey(entry.id), entry);
+  if(!ok){alert('Save failed.');return}
+  await loadAllReferrals();
+  // Snap the diary to the quarter we just added/edited in
+  state.referralsQuarter = quarterOf(entry.date);
+  clearReferralForm();
+  renderReferrals();
+  renderScorecard();
+}
+
+async function deleteReferral(id){
+  const r = state.referrals.find(x=>x.id===id);
+  if(!r) return;
+  if(!confirm(`Delete entry for ${r.name} on ${formatDate(r.date)}?`)) return;
+  await sgDel(r._key);
+  await loadAllReferrals();
+  if(state.editingRefId === id) clearReferralForm();
+  renderReferrals();
+  renderScorecard();
+}
+
+function renderReferrals(){
+  if(!state.referralsQuarter) state.referralsQuarter = currentQuarter();
+  const q = state.referralsQuarter;
+  $('#rq-label').textContent = quarterLabel(q);
+  // Make sure date defaults inside the form sit somewhere sensible
+  if(!$('#rf-date').value) $('#rf-date').value = new Date().toISOString().slice(0,10);
+
+  const entries = state.referrals.filter(r=>r.date && quarterOf(r.date)===q);
+  const agg = aggReferrals(entries);
+
+  // Stats grid against targets
+  const sw = $('#ref-stats');
+  sw.innerHTML = '';
+  const stats = [
+    { label:'Total contacts', v:agg.total, t:REF_TARGETS.total, op:'>=', sub:'target ≥12' },
+    { label:'New contacts', v:agg.newContacts, t:REF_TARGETS.newContacts, op:'>=', sub:'target ≥6' },
+    { label:'New referrers', v:agg.newReferrers, t:REF_TARGETS.newReferrers, op:'>=', sub:'target ≥2' },
+    { label:'% medical / health', v:agg.pctMedical, t:REF_TARGETS.pctMedical, op:'>', sub:'target >75%', isPct:true },
+  ];
+  for(const s of stats){
+    let cls = '';
+    if(s.v == null) cls = '';
+    else if(s.op==='>=' ? s.v >= s.t : s.v > s.t) cls = 'good';
+    else cls = 'bad';
+    const display = s.isPct ? pct(s.v, 0) : (s.v ?? 0);
+    sw.appendChild(el('div',{class:'stat '+cls},
+      el('div',{class:'label'}, s.label),
+      el('div',{class:'value'}, String(display)),
+      el('div',{class:'sub'}, s.sub)));
+  }
+
+  // Entry list
+  const list = $('#ref-list');
+  list.innerHTML = '';
+  if(entries.length === 0){
+    list.appendChild(el('div',{class:'empty'},
+      el('div',{class:'em-title'}, 'No diary entries this quarter yet'),
+      el('div',{}, 'Use the form above to add your first contact.')));
+    return;
+  }
+  // Sort newest first
+  entries.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  for(const r of entries){
+    list.appendChild(renderReferralEntry(r));
+  }
+}
+
+function renderReferralEntry(r){
+  const d = new Date(r.date+'T00:00:00');
+  const day = d.getDate();
+  const mon = d.toLocaleDateString('en-AU',{month:'short'}).toUpperCase();
+
+  const dateBox = el('div',{class:'rdate'},
+    el('span',{class:'day'}, String(day)),
+    mon);
+
+  const main = el('div',{class:'rmain'});
+  const title = r.name + (r.organization ? ` · ${r.organization}` : '');
+  main.appendChild(el('h4',{}, title));
+  if(r.role) main.appendChild(el('div',{class:'rrole'}, r.role));
+  if(r.outcome) main.appendChild(el('div',{class:'routcome'}, r.outcome));
+  const tags = el('div',{class:'rtags'});
+  if(r.isNew) tags.appendChild(el('span',{class:'rtag new'}, 'New contact'));
+  if(r.isNewReferrer) tags.appendChild(el('span',{class:'rtag newref'}, 'New referrer'));
+  if(r.isMedical) tags.appendChild(el('span',{class:'rtag med'}, 'Medical / health'));
+  if(tags.children.length) main.appendChild(tags);
+
+  // Updates / follow-ups
+  main.appendChild(renderReferralUpdates(r));
+
+  const actions = el('div',{class:'ractions'});
+  actions.appendChild(Object.assign(el('button',{class:'btn ghost sm'}, 'Edit'),
+    {onclick: () => loadReferralIntoForm(r)}));
+  actions.appendChild(Object.assign(el('button',{class:'btn ghost sm', style:'color:var(--b)'}, 'Delete'),
+    {onclick: () => deleteReferral(r.id)}));
+
+  return el('div',{class:'ref-entry'}, dateBox, main, actions);
+}
+
+function renderReferralUpdates(r){
+  const wrap = el('div',{class:'r-updates'});
+  const head = el('div',{class:'r-updates-head'});
+  const updates = r.updates || [];
+  head.appendChild(el('h5',{}, `Follow-ups & notes${updates.length ? ` (${updates.length})` : ''}`));
+  wrap.appendChild(head);
+
+  // Existing updates, newest first
+  if(updates.length){
+    const sorted = [...updates].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    for(const u of sorted){
+      const item = el('div',{class:'r-update'});
+      const meta = el('div',{class:'r-update-meta'});
+      meta.appendChild(el('span',{}, formatDate(u.date)));
+      meta.appendChild(Object.assign(el('button',{class:'r-update-del', title:'Delete'}, '✕'),
+        {onclick: () => deleteUpdate(r.id, u.id)}));
+      item.appendChild(meta);
+      item.appendChild(el('div',{class:'r-update-text'}, u.text));
+      wrap.appendChild(item);
+    }
+  }
+
+  // Add new update form
+  const form = el('div',{class:'r-update-form'});
+  const dateInput = el('input',{type:'date', value: new Date().toISOString().slice(0,10)});
+  const textInput = el('input',{type:'text', placeholder:'Add a follow-up note (e.g. "Caught up at conference, will email brochures")'});
+  const addBtn = el('button',{class:'btn primary sm'}, 'Add');
+  const submit = async () => {
+    const date = dateInput.value;
+    const text = textInput.value.trim();
+    if(!date || !text) return;
+    await addUpdate(r.id, date, text);
+    textInput.value = '';
+  };
+  addBtn.addEventListener('click', submit);
+  textInput.addEventListener('keydown', e => { if(e.key === 'Enter') submit() });
+  form.appendChild(dateInput);
+  form.appendChild(textInput);
+  form.appendChild(addBtn);
+  wrap.appendChild(form);
+  return wrap;
+}
+
+async function addUpdate(referralId, date, text){
+  const r = state.referrals.find(x => x.id === referralId);
+  if(!r) return;
+  if(!Array.isArray(r.updates)) r.updates = [];
+  r.updates.push({
+    id: 'u_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,5),
+    date, text,
+    createdAt: new Date().toISOString()
+  });
+  r.updatedAt = new Date().toISOString();
+  const {_key, ...rest} = r;
+  await sgSet(refKey(r.id), rest);
+  await loadAllReferrals();
+  renderReferrals();
+}
+
+async function deleteUpdate(referralId, updateId){
+  const r = state.referrals.find(x => x.id === referralId);
+  if(!r || !Array.isArray(r.updates)) return;
+  r.updates = r.updates.filter(u => u.id !== updateId);
+  r.updatedAt = new Date().toISOString();
+  const {_key, ...rest} = r;
+  await sgSet(refKey(r.id), rest);
+  await loadAllReferrals();
+  renderReferrals();
+}
+
+
+// === NOTES / CATCH-UPS ===
+const NOTE_PRIORITY_ORDER = { high:0, med:1, low:2 };
+
+$$('#notes-filter-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('#notes-filter-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.notesFilter = btn.dataset.filter;
+    renderNotes();
+  });
+});
+
+$('#note-add-btn').addEventListener('click', addNoteFromBar);
+$('#note-text').addEventListener('keydown', e => { if(e.key === 'Enter') addNoteFromBar() });
+
+async function addNoteFromBar(){
+  const text = $('#note-text').value.trim();
+  if(!text){ $('#note-text').focus(); return }
+  const note = {
+    id: noteId(),
+    text,
+    priority: $('#note-priority').value || 'med',
+    tag: $('#note-tag').value.trim(),
+    due: $('#note-due').value || '',
+    done: false,
+    createdAt: new Date().toISOString(),
+    completedAt: null,
+  };
+  await sgSet(noteKey(note.id), note);
+  await loadAllNotes();
+  $('#note-text').value = '';
+  $('#note-tag').value = '';
+  $('#note-due').value = '';
+  $('#note-priority').value = 'med';
+  $('#note-text').focus();
+  renderNotes();
+}
+
+async function toggleNoteDone(id){
+  const n = state.notes.find(x => x.id === id);
+  if(!n) return;
+  n.done = !n.done;
+  n.completedAt = n.done ? new Date().toISOString() : null;
+  const {_key, ...rest} = n;
+  await sgSet(noteKey(n.id), rest);
+  await loadAllNotes();
+  renderNotes();
+}
+
+async function updateNoteText(id, newText){
+  const n = state.notes.find(x => x.id === id);
+  if(!n) return;
+  newText = newText.trim();
+  if(!newText){ await deleteNote(id, true); return }
+  if(newText === n.text) return;
+  n.text = newText;
+  const {_key, ...rest} = n;
+  await sgSet(noteKey(n.id), rest);
+  await loadAllNotes();
+}
+
+async function deleteNote(id, skipConfirm){
+  const n = state.notes.find(x => x.id === id);
+  if(!n) return;
+  if(!skipConfirm && !confirm('Delete this note?')) return;
+  await sgDel(n._key);
+  await loadAllNotes();
+  renderNotes();
+}
+
+function dueStatus(dueISO){
+  if(!dueISO) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(dueISO+'T00:00:00');
+  const days = Math.round((due - today) / (1000*60*60*24));
+  if(days < 0) return { state:'overdue', days, label:`${Math.abs(days)}d overdue` };
+  if(days === 0) return { state:'soon', days, label:'Due today' };
+  if(days <= 3) return { state:'soon', days, label:`Due in ${days}d` };
+  return { state:'future', days, label:`Due ${formatDate(dueISO)}` };
+}
+
+function refreshTagDatalist(){
+  const dl = $('#note-tag-list');
+  if(!dl) return;
+  const tags = [...new Set(state.notes.map(n => n.tag).filter(Boolean))].sort();
+  dl.innerHTML = '';
+  for(const t of tags) dl.appendChild(el('option',{value:t}));
+}
+
+function renderNotes(){
+  refreshTagDatalist();
+  const sorted = [...state.notes].sort((a,b) => {
+    if(a.done !== b.done) return a.done ? 1 : -1;
+    if(!a.done){
+      const pa = NOTE_PRIORITY_ORDER[a.priority] ?? 1;
+      const pb = NOTE_PRIORITY_ORDER[b.priority] ?? 1;
+      if(pa !== pb) return pa - pb;
+      if(a.due && b.due) return a.due.localeCompare(b.due);
+      if(a.due) return -1;
+      if(b.due) return 1;
+      return (b.createdAt||'').localeCompare(a.createdAt||'');
+    }
+    return (b.completedAt||'').localeCompare(a.completedAt||'');
+  });
+
+  const open = state.notes.filter(n => !n.done);
+  const done = state.notes.filter(n => n.done);
+  let overdue = 0, soon = 0;
+  for(const n of open){
+    const d = dueStatus(n.due);
+    if(d?.state === 'overdue') overdue++;
+    else if(d?.state === 'soon') soon++;
+  }
+  const sw = $('#note-stats');
+  sw.innerHTML = '';
+  if(state.notes.length === 0){
+    sw.style.display = 'none';
+  } else {
+    sw.style.display = 'flex';
+    sw.appendChild(el('div',{class:'ns-item'}, el('b',{}, String(open.length)), 'open'));
+    sw.appendChild(el('div',{class:'ns-item'}, el('b',{}, String(done.length)), 'done'));
+    if(overdue) sw.appendChild(el('div',{class:'ns-item ns-overdue'}, el('b',{}, String(overdue)), 'overdue'));
+    if(soon) sw.appendChild(el('div',{class:'ns-item ns-soon'}, el('b',{}, String(soon)), 'due soon'));
+  }
+
+  const filter = state.notesFilter;
+  const list = sorted.filter(n => {
+    if(filter === 'open') return !n.done;
+    if(filter === 'done') return n.done;
+    return true;
+  });
+
+  const wrap = $('#notes-list');
+  wrap.innerHTML = '';
+  if(list.length === 0){
+    let msg = 'No notes yet';
+    if(filter === 'open') msg = state.notes.length ? 'Nothing open — all caught up.' : 'No notes yet';
+    if(filter === 'done') msg = 'Nothing ticked off yet.';
+    wrap.appendChild(el('div',{class:'empty'},
+      el('div',{class:'em-title'}, msg),
+      el('div',{}, filter === 'open' ? 'Add one above to start a checklist.' : '')));
+    return;
+  }
+  for(const n of list) wrap.appendChild(renderNoteCard(n));
+}
+
+function renderNoteCard(n){
+  const due = dueStatus(n.due);
+  const overdueClass = (due?.state === 'overdue' && !n.done) ? ' overdue' : '';
+  const card = el('div',{class:`note-card ${n.priority||'med'}${n.done?' done':''}${overdueClass}`});
+
+  const check = el('div',{class:`note-check${n.done?' checked':''}`, role:'button', 'aria-label':'Toggle done'});
+  check.addEventListener('click', () => toggleNoteDone(n.id));
+  card.appendChild(check);
+
+  const body = el('div',{class:'note-body'});
+  const text = el('div',{class:'note-text'}, n.text);
+  text.title = 'Click to edit';
+  text.addEventListener('click', () => {
+    if(text.contentEditable === 'true') return;
+    text.contentEditable = 'true';
+    text.focus();
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  text.addEventListener('blur', async () => {
+    text.contentEditable = 'false';
+    await updateNoteText(n.id, text.textContent);
+  });
+  text.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); text.blur() }
+    if(e.key === 'Escape'){ text.textContent = n.text; text.blur() }
+  });
+  body.appendChild(text);
+
+  const meta = el('div',{class:'note-meta'});
+  if(n.priority === 'high' && !n.done) meta.appendChild(el('span',{class:'npill high'}, '⚑ High'));
+  if(n.tag) meta.appendChild(el('span',{class:'npill tag'}, n.tag));
+  if(due){
+    const dueClass = due.state === 'overdue' ? ' overdue' : due.state === 'soon' ? ' soon' : '';
+    meta.appendChild(el('span',{class:`npill due${dueClass}`}, due.label));
+  }
+  if(n.done){
+    meta.appendChild(el('span',{class:'npill done'}, 'Done ' + formatDate((n.completedAt||'').slice(0,10))));
+  } else {
+    const created = n.createdAt ? formatDate(n.createdAt.slice(0,10)) : '';
+    if(created) meta.appendChild(el('span',{}, 'Added ' + created));
+  }
+  if(meta.children.length) body.appendChild(meta);
+  card.appendChild(body);
+
+  const actions = el('div',{class:'note-actions'});
+  const priorityBtn = el('button',{title:'Change priority'}, n.priority === 'high' ? '⚑' : n.priority === 'low' ? '○' : '●');
+  priorityBtn.addEventListener('click', async () => {
+    const order = ['low','med','high'];
+    const cur = order.indexOf(n.priority || 'med');
+    n.priority = order[(cur + 1) % 3];
+    const {_key, ...rest} = n;
+    await sgSet(noteKey(n.id), rest);
+    await loadAllNotes();
+    renderNotes();
+  });
+  actions.appendChild(priorityBtn);
+  const delBtn = el('button',{class:'del', title:'Delete'}, '✕');
+  delBtn.addEventListener('click', () => deleteNote(n.id));
+  actions.appendChild(delBtn);
+  card.appendChild(actions);
+
+  return card;
+}
+
+
+$('#history-filter').addEventListener('change', renderHistory);
+
+function renderHistory(){
+  const wrap = $('#history-list');
+  const filter = $('#history-filter').value;
+  const list = filter ? state.sheets.filter(s=>s.physio===filter) : state.sheets;
+  wrap.innerHTML = '';
+  if(list.length===0){
+    wrap.appendChild(el('div',{class:'empty'},
+      el('div',{class:'em-title'},'No sheets saved yet'),
+      el('div',{},'Head to Add sheet to start.')));
+    return;
+  }
+  wrap.appendChild(el('div',{class:'history-row',style:'background:var(--bgs);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkm);font-weight:600'},
+    el('div',{},'Date'), el('div',{},'Physio'),
+    el('div',{},'Recalls'), el('div',{},'Done'),
+    el('div',{},'Rebooked'), el('div',{},'D/C'), el('div',{},'')));
+  for(const s of list){
+    const k = aggSheets([s]);
+    const row = el('div',{class:'history-row'});
+    row.appendChild(el('div',{class:'date'}, formatDate(s.dateISO)));
+    row.appendChild(el('div',{class:'physio'}, s.physio));
+    row.appendChild(el('div',{class:'stat-mini'}, String(k.total)));
+    row.appendChild(el('div',{class:'stat-mini'}, String(k.completed)));
+    row.appendChild(el('div',{class:'stat-mini'}, String(k.rebooked)));
+    row.appendChild(el('div',{class:'stat-mini'}, `${k.dc}/${k.added}`));
+    const actions = el('div',{style:'display:flex;gap:4px;justify-content:flex-end'});
+    actions.appendChild(Object.assign(el('button',{class:'btn ghost sm'},'View'),{onclick:()=>viewSheet(s)}));
+    actions.appendChild(Object.assign(el('button',{class:'btn ghost sm',style:'color:var(--b)'},'Delete'),{onclick:()=>deleteSheet(s)}));
+    row.appendChild(actions);
+    wrap.appendChild(row);
+  }
+}
+
+function viewSheet(s){
+  const w = window.open('','_blank','width=720,height=820');
+  if(!w){alert('Pop-up blocked. Allow pop-ups to view.');return}
+  const yn = v => v==='Y'?'<span style="color:#2c4a1f;font-weight:600">Y</span>':v==='N'?'<span style="color:#6e2229;font-weight:600">N</span>':v==='SMS'?'<span style="color:#6b4a10;font-weight:600">SMS</span>':'<span style="color:#999">—</span>';
+  const hasRows = s.rows && s.rows.length;
+  const rowsHTML = hasRows ? s.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.name)}</td><td>${yn(r.recalled)}</td><td>${yn(r.answered)}</td><td>${yn(r.rebooked)}</td><td>${esc(r.comment)}</td></tr>`).join('') : '';
+  const totalsHTML = `
+    <div class=t><b>Total recalls:</b> ${s.totalRecalls||(s.rows?.length||0)}</div>
+    <div class=t><b>Completed:</b> ${s.recallsCompleted||0}</div>
+    <div class=t><b>Reached:</b> ${s.numberReached||0}</div>
+    <div class=t><b>Rebooked:</b> ${s.numberRebooked||0}</div>
+    <div class=t><b>D/C:</b> ${s.dischargedCount||0}</div>
+    <div class=t><b>Recalls added:</b> ${s.recallsAdded||0}</div>`;
+  w.document.write(`<!doctype html><meta charset=utf-8><title>${esc(s.physio)} – ${esc(s.dateISO)}</title>
+    <style>body{font-family:-apple-system,sans-serif;padding:24px;color:#1a1f1c}h1{font-weight:500}h3{margin-top:24px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px 10px;border-bottom:1px solid #eee;text-align:left}th{background:#f5f1e8;font-size:11px;text-transform:uppercase;letter-spacing:.06em}.totals{margin-top:20px;padding:12px;background:#f5f1e8;border-radius:6px;display:flex;gap:24px;flex-wrap:wrap}.t{font-size:13px}</style>
+    <h1>${esc(s.physio)} — ${esc(formatDate(s.dateISO))}</h1>
+    <div class=totals>${totalsHTML}</div>
+    ${hasRows?`<h3>Patient detail</h3><table><thead><tr><th>#</th><th>Name</th><th>Recalled</th><th>Answered</th><th>Rebooked</th><th>Comment</th></tr></thead><tbody>${rowsHTML}</tbody></table>`:''}`);
+  w.document.close();
+}
+function esc(t){return String(t||'').replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'})[c])}
+
+async function deleteSheet(s){
+  if(!confirm(`Delete ${s.physio}'s sheet from ${formatDate(s.dateISO)}?`)) return;
+  await sgDel(s._key);
+  await loadAllSheets();
+  renderHistory();
+}
+
+// === SETTINGS ===
+function renderSettings(){
+  const wrap = $('#physios-editor');
+  wrap.innerHTML = '';
+  for(const p of state.physios){
+    const chip = el('div',{style:'display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--ps);color:var(--pi);border-radius:999px;font-size:13px;font-weight:500'},
+      p,
+      Object.assign(el('button',{style:'background:transparent;border:0;cursor:pointer;color:inherit;opacity:.6;font-size:14px;padding:0'},'✕'),{
+        onclick: async ()=>{
+          if(state.physios.length<=1){alert('Keep at least one.');return}
+          if(!confirm(`Remove ${p}? Saved sheets stay but won't appear in dropdowns.`)) return;
+          state.physios = state.physios.filter(x=>x!==p);
+          await saveSettings(); renderPhysioDropdowns(); renderSettings();
+        }
+      })
+    );
+    wrap.appendChild(chip);
+  }
+  $('#api-key').value = state.apiKey || '';
+}
+
+$('#add-physio-btn').addEventListener('click', async ()=>{
+  const v = $('#new-physio-name').value.trim();
+  if(!v) return;
+  if(state.physios.includes(v)){alert('Already added.');return}
+  state.physios.push(v);
+  await saveSettings();
+  $('#new-physio-name').value = '';
+  renderPhysioDropdowns(); renderSettings();
+});
+
+$('#api-key').addEventListener('change', async e=>{
+  state.apiKey = e.target.value.trim();
+  await saveSettings();
+});
+
+$('#export-btn').addEventListener('click', ()=>{
+  const data = {exportedAt:new Date().toISOString(), settings:{physios:state.physios}, sheets:state.sheets, kpiValues:state.kpiValues, referrals:state.referrals, notes:state.notes, audits:state.audits, feedback:state.feedback};
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = el('a',{href:url, download:`management-kpis-${new Date().toISOString().slice(0,10)}.json`});
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+$('#import-btn').addEventListener('click', ()=>$('#import-file').click());
+$('#import-file').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    if(!Array.isArray(data.sheets)) throw new Error('Bad format');
+    if(!confirm(`Import ${data.sheets.length} sheet(s)?`)) return;
+    if(data.settings?.physios){
+      state.physios = [...new Set([...state.physios, ...data.settings.physios])];
+      await saveSettings();
+    }
+    for(const s of data.sheets){const{_key,...rest}=s;await sgSet(sheetKey(s.physio,s.dateISO), rest)}
+    if(data.kpiValues){for(const[q,v]of Object.entries(data.kpiValues))await sgSet(KPI_PREFIX+q, v)}
+    if(Array.isArray(data.referrals)){for(const r of data.referrals){const{_key,...rest}=r;await sgSet(refKey(r.id), rest)}}
+    if(Array.isArray(data.notes)){for(const n of data.notes){const{_key,...rest}=n;await sgSet(noteKey(n.id), rest)}}
+    if(data.audits && typeof data.audits === 'object'){for(const [q,vals] of Object.entries(data.audits)){await sgSet(AUDIT_PREFIX+q, vals)}}
+    if(data.feedback && typeof data.feedback === 'object'){for(const [q,vals] of Object.entries(data.feedback)){await sgSet(FEEDBACK_PREFIX+q, vals)}}
+    await loadAllSheets(); await loadAllKPIs(); await loadAllReferrals(); await loadAllNotes(); await loadAllAudits(); await loadAllFeedback();
+    renderPhysioDropdowns(); renderSettings(); renderScorecard();
+    alert('Import complete.');
+  } catch(err){alert('Import failed: '+err.message)}
+  finally{e.target.value=''}
+});
+$('#reset-btn').addEventListener('click', async ()=>{
+  if(!confirm('Wipe ALL saved sheets, KPI values, referrals, notes, audits, feedback, and settings?')) return;
+  if(!confirm('Really wipe everything? This cannot be undone.')) return;
+  for(const s of state.sheets) await sgDel(s._key);
+  for(const q of Object.keys(state.kpiValues)) await sgDel(KPI_PREFIX+q);
+  for(const r of state.referrals) await sgDel(r._key);
+  for(const n of state.notes) await sgDel(n._key);
+  for(const q of Object.keys(state.audits)) await sgDel(AUDIT_PREFIX+q);
+  for(const q of Object.keys(state.feedback)) await sgDel(FEEDBACK_PREFIX+q);
+  await sgDel(SETTINGS_KEY);
+  state.physios = [...DEFAULT_PHYSIOS];
+  state.apiKey = ''; state.sheets = []; state.kpiValues = {}; state.referrals = []; state.notes = []; state.audits = {}; state.feedback = {};
+  renderPhysioDropdowns(); renderSettings(); renderScorecard();
+  alert('Reset complete.');
+});
+
+// === INIT ===
+(async function(){
+  // Show local-mode banner if we're using browser storage (downloaded/standalone)
+  if(window.__storageLocal){
+    $('#local-warn').style.display = 'flex';
+  }
+  await loadSettings();
+  await loadAllSheets();
+  await loadAllKPIs();
+  await loadAllReferrals();
+  await loadAllNotes();
+  await loadAllAudits();
+  await loadAllFeedback();
+  renderPhysioDropdowns();
+  $('#up-date').value = new Date().toISOString().slice(0,10);
+  clearReferralForm();
+  renderDetailRows();
+  renderScorecard();
+})();
+</script>
+</body>
+</html>
