@@ -3,6 +3,12 @@
 # editing Python code. Reload the dashboard after any change.
 
 timezone: Australia/Sydney
+
+# v27.25 — Manager KPIs tab iframes this URL. Leave blank to fall back
+# to the local HTML (per-browser localStorage only, no sharing). Set to
+# your Netlify site once deployed, e.g.
+#   manager_kpis_site_url: "https://enhance-manager-kpis.netlify.app"
+manager_kpis_site_url: "https://enhance-manager-kpis.netlify.app"
 financial_year_start_month: 7   # AU FY: Jul 1
 
 # v27.3 — Practitioners to exclude from EVERY calculation and dropdown.
